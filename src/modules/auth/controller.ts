@@ -18,7 +18,16 @@ const loginValidators = [
 ];
 
 const forgotValidators = [body('email').isEmail()];
-const resetValidators = [body('token').notEmpty(), body('password').isLength({ min: 8 })];
+const verifyOtpValidators = [body('email').isEmail(), body('otp').isLength({ min: 6, max: 6 })];
+const resetValidators = [
+  body().custom((value) => {
+    if (!value?.otp && !value?.token) {
+      throw new Error('otp or token is required');
+    }
+    return true;
+  }),
+  body('password').isLength({ min: 8 })
+];
 const changeValidators = [body('currentPassword').notEmpty(), body('newPassword').isLength({ min: 8 })];
 
 export const register = [
@@ -76,8 +85,17 @@ export const resetPassword = [
   ...resetValidators,
   validate,
   asyncHandler(async (req: Request, res: Response) => {
-    await authService.resetPassword(req.body.token, req.body.password);
+    await authService.resetPassword(req.body.otp || req.body.token, req.body.password);
     res.json({ message: 'Password updated' });
+  })
+];
+
+export const verifyResetOtp = [
+  ...verifyOtpValidators,
+  validate,
+  asyncHandler(async (req: Request, res: Response) => {
+    await authService.verifyResetOtp(req.body.email, req.body.otp);
+    res.json({ message: 'OTP verified' });
   })
 ];
 

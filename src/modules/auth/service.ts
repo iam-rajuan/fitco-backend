@@ -52,6 +52,8 @@ const persistRefreshToken = async (account: AccountDocument, token: string, deco
   await account.save();
 };
 
+const hashResetCode = (code: string): string => crypto.createHash('sha256').update(code).digest('hex');
+
 export const registerUser = async (payload: RegisterPayload): Promise<SanitizedAccount> => {
   const existing = await UserModel.findOne({ email: payload.email.toLowerCase() });
   if (existing) {
@@ -126,17 +128,42 @@ export const forgotPassword = async (email: string): Promise<void> => {
   if (!user) {
     return;
   }
-  const token = crypto.randomBytes(32).toString('hex');
+  const otp = crypto.randomInt(0, 1000000).toString().padStart(6, '0');
+  const tokenHash = hashResetCode(otp);
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
   await AuthTokenModel.deleteMany({ user: user._id, type: 'password_reset', used: false });
-  await AuthTokenModel.create({ user: user._id, token, type: 'password_reset', expiresAt });
-  await sendPasswordResetEmail({ email: user.email, token });
+  await AuthTokenModel.create({ user: user._id, token: tokenHash, type: 'password_reset', expiresAt });
+  await sendPasswordResetEmail({ email: user.email, otp });
+};
+
+export const verifyResetOtp = async (email: string, otp: string): Promise<void> => {
+  const user = await UserModel.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    const error = new Error('Invalid or expired OTP');
+    (error as any).statusCode = 400;
+    throw error;
+  }
+
+  const tokenHash = hashResetCode(otp);
+  const record = await AuthTokenModel.findOne({
+    user: user._id,
+    token: tokenHash,
+    type: 'password_reset',
+    used: false
+  });
+
+  if (!record || record.expiresAt < new Date()) {
+    const error = new Error('Invalid or expired OTP');
+    (error as any).statusCode = 400;
+    throw error;
+  }
 };
 
 export const resetPassword = async (token: string, newPassword: string): Promise<void> => {
-  const record = await AuthTokenModel.findOne({ token, type: 'password_reset', used: false });
+  const tokenHash = hashResetCode(token);
+  const record = await AuthTokenModel.findOne({ token: tokenHash, type: 'password_reset', used: false });
   if (!record || record.expiresAt < new Date()) {
-    const error = new Error('Invalid or expired token');
+    const error = new Error('Invalid or expired OTP');
     (error as any).statusCode = 400;
     throw error;
   }
