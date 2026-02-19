@@ -6,18 +6,33 @@ import validate from '../../middlewares/validationMiddleware';
 import { authenticate, authorizeRoles } from '../../middlewares/authMiddleware';
 import { ROLES } from '../../utils/constants';
 
+const allowOnlyFields = (allowedFields: string[]) =>
+  body().custom((value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error('Request body must be a JSON object');
+    }
+    const invalidFields = Object.keys(value).filter((key) => !allowedFields.includes(key));
+    if (invalidFields.length > 0) {
+      throw new Error(`Only these fields are allowed: ${allowedFields.join(', ')}`);
+    }
+    return true;
+  });
+
 const registerValidators = [
-  body('name').notEmpty(),
+  allowOnlyFields(['firstName', 'lastName', 'email', 'password']),
+  body('firstName').isString().trim().notEmpty(),
+  body('lastName').isString().trim().notEmpty(),
   body('email').isEmail(),
   body('password').isLength({ min: 8 })
 ];
 
 const loginValidators = [
+  allowOnlyFields(['email', 'password']),
   body('email').isEmail(),
   body('password').notEmpty()
 ];
 
-const forgotValidators = [body('email').isEmail()];
+const forgotValidators = [allowOnlyFields(['email']), body('email').isEmail()];
 const verifyOtpValidators = [body('email').isEmail(), body('otp').isLength({ min: 6, max: 6 })];
 const resetValidators = [
   body().custom((value) => {

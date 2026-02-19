@@ -17,6 +17,7 @@ import cmsRoutes from './modules/cms/routes';
 import dashboardRoutes from './modules/dashboard/routes';
 
 const app = express();
+const API_PREFIX = '/api/v1';
 
 app.use(helmet());
 app.use(cors({ origin: true, credentials: true }));
@@ -25,19 +26,19 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan(config.env === 'development' ? 'dev' : 'combined'));
 
-app.get('/health', (req, res) => {
+app.get(`${API_PREFIX}/health`, (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/subscriptions', subscriptionRoutes);
-app.use('/api/coupons', couponRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/cms', cmsRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+app.use(`${API_PREFIX}/auth`, authRoutes);
+app.use(`${API_PREFIX}/users`, userRoutes);
+app.use(`${API_PREFIX}/admin`, adminRoutes);
+app.use(`${API_PREFIX}/subscriptions`, subscriptionRoutes);
+app.use(`${API_PREFIX}/coupons`, couponRoutes);
+app.use(`${API_PREFIX}/chat`, chatRoutes);
+app.use(`${API_PREFIX}/reports`, reportRoutes);
+app.use(`${API_PREFIX}/cms`, cmsRoutes);
+app.use(`${API_PREFIX}/dashboard`, dashboardRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

@@ -9,12 +9,21 @@ export interface RefreshToken {
 
 export interface UserDocument extends Document {
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   password: string;
   role: string;
+  age?: number;
   height?: number;
+  currentWeight?: number;
   weight?: number;
+  gender?: 'male' | 'female' | 'other';
+  activityLevel?: 'standard' | 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extremely_active';
+  goal?: 'lose_weight' | 'maintain_weight' | 'gain_weight' | 'build_muscle';
   goals?: string;
+  medicalConditions?: string;
+  foodAllergies?: string;
   subscriptionStatus: 'free' | 'premium';
   isBlocked: boolean;
   refreshTokens: RefreshToken[];
@@ -34,12 +43,24 @@ const RefreshTokenSchema = new Schema<RefreshToken>(
 const UserSchema = new Schema<UserDocument>(
   {
     name: { type: String, required: true, trim: true },
+    firstName: { type: String, trim: true },
+    lastName: { type: String, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
     role: { type: String, enum: [ROLES.ADMIN, ROLES.USER], default: ROLES.USER },
+    age: Number,
     height: Number,
+    currentWeight: Number,
     weight: Number,
+    gender: { type: String, enum: ['male', 'female', 'other'] },
+    activityLevel: {
+      type: String,
+      enum: ['standard', 'sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extremely_active']
+    },
+    goal: { type: String, enum: ['lose_weight', 'maintain_weight', 'gain_weight', 'build_muscle'] },
     goals: String,
+    medicalConditions: String,
+    foodAllergies: String,
     subscriptionStatus: { type: String, enum: ['free', 'premium'], default: 'free' },
     isBlocked: { type: Boolean, default: false },
     refreshTokens: [RefreshTokenSchema]

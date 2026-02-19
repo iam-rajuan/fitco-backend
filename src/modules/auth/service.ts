@@ -19,24 +19,26 @@ interface SanitizedAccount {
   email: string;
   role: Role;
   name?: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 type AccountDocument = UserDocument | AdminDocument;
 
 interface RegisterPayload {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
-  height?: number;
-  weight?: number;
-  goals?: string;
 }
 
 const sanitizeAccount = (account: AccountDocument): SanitizedAccount => ({
   id: account._id.toString(),
   email: account.email,
   role: account.role as Role,
-  name: account.name
+  name: account.name,
+  firstName: (account as any).firstName,
+  lastName: (account as any).lastName
 });
 
 const buildTokensPayload = (account: AccountDocument): TokenPayload => ({
@@ -61,7 +63,13 @@ export const registerUser = async (payload: RegisterPayload): Promise<SanitizedA
     (error as any).statusCode = 400;
     throw error;
   }
-  const user = await UserModel.create(payload);
+  const user = await UserModel.create({
+    firstName: payload.firstName.trim(),
+    lastName: payload.lastName.trim(),
+    name: `${payload.firstName.trim()} ${payload.lastName.trim()}`,
+    email: payload.email.toLowerCase(),
+    password: payload.password
+  });
   return sanitizeAccount(user);
 };
 

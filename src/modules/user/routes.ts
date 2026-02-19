@@ -1,15 +1,31 @@
 import { Router } from 'express';
 import { authenticate, authorizeRoles } from '../../middlewares/authMiddleware';
 import { ROLES } from '../../utils/constants';
-import { blockUser, getUserDetails, listUsers, unblockUser } from './controller';
+import {
+  blockUser,
+  getMyProfile,
+  getUserDetails,
+  listActivityLevels,
+  listGoalOptions,
+  listUsers,
+  submitOnboarding,
+  unblockUser,
+  upsertMyHealthInfo,
+  upsertMyProfile
+} from './controller';
 
 const router = Router();
 
-router.use(authenticate, authorizeRoles(ROLES.ADMIN));
+router.get('/me', authenticate, authorizeRoles(ROLES.USER), getMyProfile);
+router.patch('/me/profile', authenticate, authorizeRoles(ROLES.USER), upsertMyProfile);
+router.patch('/me/health', authenticate, authorizeRoles(ROLES.USER), upsertMyHealthInfo);
+router.post('/me/onboarding', authenticate, authorizeRoles(ROLES.USER), submitOnboarding);
+router.get('/meta/activity-levels', authenticate, authorizeRoles(ROLES.USER), listActivityLevels);
+router.get('/meta/goals', authenticate, authorizeRoles(ROLES.USER), listGoalOptions);
 
-router.get('/', listUsers);
-router.get('/:id', getUserDetails);
-router.patch('/:id/block', blockUser);
-router.patch('/:id/unblock', unblockUser);
+router.get('/', authenticate, authorizeRoles(ROLES.ADMIN), listUsers);
+router.get('/:id', authenticate, authorizeRoles(ROLES.ADMIN), getUserDetails);
+router.patch('/:id/block', authenticate, authorizeRoles(ROLES.ADMIN), blockUser);
+router.patch('/:id/unblock', authenticate, authorizeRoles(ROLES.ADMIN), unblockUser);
 
 export default router;

@@ -1,0 +1,369 @@
+{
+  "info": {
+    "name": "Fitco User Auth + Profile API v1",
+    "description": "Collection for user registration, authentication, password recovery, profile update, activity level/goal metadata, and health info.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Register User",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "auth", "register"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Auth - Login User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+              "if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "auth", "login"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Auth - Forgot Password (Send OTP via SMTP)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{userEmail}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/forgot-password",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "auth", "forgot-password"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Auth - Verify Reset OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"otp\": \"{{otp}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/verify-reset-otp",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "auth", "verify-reset-otp"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Auth - Reset Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"otp\": \"{{otp}}\",\n  \"password\": \"{{newPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/reset-password",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "auth", "reset-password"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Auth - Change Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"currentPassword\": \"{{userPassword}}\",\n  \"newPassword\": \"{{newPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/change-password",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "auth", "change-password"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User - Get My Profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "users", "me"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User - Activity Levels",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/meta/activity-levels",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "users", "meta", "activity-levels"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User - Goal Options",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/meta/goals",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "users", "meta", "goals"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User - Edit Profile",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"age\": 27,\n  \"height\": 175,\n  \"currentWeight\": 74,\n  \"gender\": \"male\",\n  \"activityLevel\": \"moderately_active\",\n  \"goal\": \"maintain_weight\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/me/profile",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "users", "me", "profile"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User - Health Information",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"medicalConditions\": \"Diabetes, heart condition\",\n  \"foodAllergies\": \"Nuts, dairy, gluten\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/me/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "users", "me", "health"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User - Big Onboarding POST (JSON)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"age\": 27,\n  \"height\": 175,\n  \"currentWeight\": 74,\n  \"gender\": \"male\",\n  \"activityLevel\": \"moderately_active\",\n  \"goal\": \"maintain_weight\",\n  \"medicalConditions\": \"Diabetes, heart condition\",\n  \"foodAllergies\": \"Nuts, dairy, gluten\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/me/onboarding",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "users", "me", "onboarding"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User - Big Onboarding POST (Form Data)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "age", "value": "27", "type": "text" },
+            { "key": "height", "value": "175", "type": "text" },
+            { "key": "currentWeight", "value": "74", "type": "text" },
+            { "key": "gender", "value": "male", "type": "text" },
+            { "key": "activityLevel", "value": "moderately_active", "type": "text" },
+            { "key": "goal", "value": "maintain_weight", "type": "text" },
+            { "key": "medicalConditions", "value": "Diabetes, heart condition", "type": "text" },
+            { "key": "foodAllergies", "value": "Nuts, dairy, gluten", "type": "text" }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/me/onboarding",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "users", "me", "onboarding"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Auth - Delete Account",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/delete-account",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "auth", "delete-account"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "userEmail",
+      "value": "john.doe@example.com"
+    },
+    {
+      "key": "userPassword",
+      "value": "Password123"
+    },
+    {
+      "key": "newPassword",
+      "value": "Password1234"
+    },
+    {
+      "key": "otp",
+      "value": "123456"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    }
+  ]
+}

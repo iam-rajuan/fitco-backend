@@ -37,7 +37,7 @@ export const sendMessage = async (userId: string, prompt: string): Promise<ChatR
     }
   }
 
-  const systemPrompt = `You are Creedtng, an AI fitness coach. Personalize guidance using this profile: Name: ${user.name}. Height: ${user.height ?? 'N/A'}. Weight: ${user.weight ?? 'N/A'}. Goals: ${user.goals ?? 'N/A'}. Subscription: ${isPremium ? 'Premium' : 'Free'}. Provide actionable, safe fitness and nutrition advice.`;
+  const systemPrompt = `You are Creedtng, an AI fitness coach. Personalize guidance using this profile: Name: ${user.name}. Height: ${user.height ?? 'N/A'}. Weight: ${user.currentWeight ?? user.weight ?? 'N/A'}. Goals: ${user.goal ?? user.goals ?? 'N/A'}. Subscription: ${isPremium ? 'Premium' : 'Free'}. Provide actionable, safe fitness and nutrition advice.`;
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
