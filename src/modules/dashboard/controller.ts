@@ -8,6 +8,25 @@ export const getOverview = asyncHandler(async (req: Request, res: Response) => {
   res.json(data);
 });
 
+export const getTotals = asyncHandler(async (_req: Request, res: Response) => {
+  const data = await dashboardService.getTotals();
+  res.json(data);
+});
+
+export const getUserRatio = asyncHandler(async (req: Request, res: Response) => {
+  const year = getSingleQueryParam(req.query.year);
+  const data = await dashboardService.getUserRatioByYear({ year });
+  res.json(data);
+});
+
+export const listRecentUsers = asyncHandler(async (req: Request, res: Response) => {
+  const page = getSingleQueryParam(req.query.page) ?? '1';
+  const limit = getSingleQueryParam(req.query.limit) ?? '10';
+  const year = getSingleQueryParam(req.query.year);
+  const data = await dashboardService.listRecentUsers({ page, limit, year });
+  res.json(data);
+});
+
 export const listTransactions = asyncHandler(async (req: Request, res: Response) => {
   const page = getSingleQueryParam(req.query.page) ?? '1';
   const limit = getSingleQueryParam(req.query.limit) ?? '20';

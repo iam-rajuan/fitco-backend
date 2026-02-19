@@ -8,6 +8,8 @@ import {
   listActivityLevels,
   listGoalOptions,
   listUsers,
+  setMyActivityLevel,
+  setMyGoal,
   submitOnboarding,
   unblockUser,
   upsertMyHealthInfo,
@@ -22,6 +24,8 @@ router.patch('/me/health', authenticate, authorizeRoles(ROLES.USER), upsertMyHea
 router.post('/me/onboarding', authenticate, authorizeRoles(ROLES.USER), submitOnboarding);
 router.get('/meta/activity-levels', authenticate, authorizeRoles(ROLES.USER), listActivityLevels);
 router.get('/meta/goals', authenticate, authorizeRoles(ROLES.USER), listGoalOptions);
+router.post('/me/activity-level', authenticate, authorizeRoles(ROLES.USER), setMyActivityLevel);
+router.post('/me/goal', authenticate, authorizeRoles(ROLES.USER), setMyGoal);
 
 router.get('/', authenticate, authorizeRoles(ROLES.ADMIN), listUsers);
 router.get('/:id', authenticate, authorizeRoles(ROLES.ADMIN), getUserDetails);

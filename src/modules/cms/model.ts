@@ -4,6 +4,8 @@ export interface CmsDocument extends Document {
   key: 'terms' | 'privacy' | 'about';
   title: string;
   content: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const CmsSchema = new Schema<CmsDocument>(

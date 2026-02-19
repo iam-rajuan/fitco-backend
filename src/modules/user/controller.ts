@@ -5,6 +5,18 @@ import * as userService from './service';
 import { getSingleQueryParam } from '../../utils/query';
 import validate from '../../middlewares/validationMiddleware';
 
+const allowOnlyFields = (allowedFields: string[]) =>
+  body().custom((value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error('Request body must be a JSON object');
+    }
+    const invalidFields = Object.keys(value).filter((key) => !allowedFields.includes(key));
+    if (invalidFields.length > 0) {
+      throw new Error(`Only these fields are allowed: ${allowedFields.join(', ')}`);
+    }
+    return true;
+  });
+
 const profileValidators = [
   body('age').optional().isInt({ min: 1, max: 120 }),
   body('height').optional().isFloat({ min: 1, max: 300 }),
@@ -17,6 +29,16 @@ const profileValidators = [
 const healthValidators = [
   body('medicalConditions').optional().isString().trim(),
   body('foodAllergies').optional().isString().trim()
+];
+
+const activityLevelValidators = [
+  allowOnlyFields(['activityLevel']),
+  body('activityLevel').isIn(userService.ACTIVITY_LEVEL_OPTIONS.map((item) => item.key))
+];
+
+const goalValidators = [
+  allowOnlyFields(['goal']),
+  body('goal').isIn(userService.GOAL_OPTIONS.map((item) => item.key))
 ];
 
 export const listUsers = asyncHandler(async (req: Request, res: Response) => {
@@ -103,3 +125,29 @@ export const listActivityLevels = asyncHandler(async (_req: Request, res: Respon
 export const listGoalOptions = asyncHandler(async (_req: Request, res: Response) => {
   res.json(userService.GOAL_OPTIONS);
 });
+
+export const setMyActivityLevel = [
+  ...activityLevelValidators,
+  validate,
+  asyncHandler(async (req: Request, res: Response) => {
+    const user = await userService.updateProfile(req.auth!.id, { activityLevel: req.body.activityLevel });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const selection = userService.ACTIVITY_LEVEL_OPTIONS.find((item) => item.key === req.body.activityLevel);
+    res.json({ message: 'Activity level updated', selection, user });
+  })
+];
+
+export const setMyGoal = [
+  ...goalValidators,
+  validate,
+  asyncHandler(async (req: Request, res: Response) => {
+    const user = await userService.updateProfile(req.auth!.id, { goal: req.body.goal });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const selection = userService.GOAL_OPTIONS.find((item) => item.key === req.body.goal);
+    res.json({ message: 'Goal updated', selection, user });
+  })
+];

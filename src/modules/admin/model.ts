@@ -10,6 +10,7 @@ interface RefreshToken {
 export interface AdminDocument extends Document {
   name: string;
   email: string;
+  contactNo?: string;
   password: string;
   role: string;
   refreshTokens: RefreshToken[];
@@ -30,6 +31,7 @@ const AdminSchema = new Schema<AdminDocument>(
   {
     name: { type: String, trim: true, default: 'Administrator' },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    contactNo: { type: String, trim: true },
     password: { type: String, required: true },
     role: { type: String, enum: [ROLES.ADMIN], default: ROLES.ADMIN },
     refreshTokens: [RefreshTokenSchema]

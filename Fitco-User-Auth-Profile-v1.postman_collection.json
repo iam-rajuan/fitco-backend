@@ -209,6 +209,58 @@
       "response": []
     },
     {
+      "name": "User - Set Activity Level",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"activityLevel\": \"moderately_active\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/me/activity-level",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "users", "me", "activity-level"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User - Set Goal",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"goal\": \"maintain_weight\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/me/goal",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "users", "me", "goal"]
+        }
+      },
+      "response": []
+    },
+    {
       "name": "User - Edit Profile",
       "request": {
         "method": "PATCH",
