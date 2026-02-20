@@ -15,12 +15,14 @@ import chatRoutes from './modules/chat/routes';
 import reportRoutes from './modules/report/routes';
 import cmsRoutes from './modules/cms/routes';
 import dashboardRoutes from './modules/dashboard/routes';
+import { stripeWebhook } from './modules/subscription/controller';
 
 const app = express();
 const API_PREFIX = '/api/v1';
 
 app.use(helmet());
 app.use(cors({ origin: true, credentials: true }));
+app.post(`${API_PREFIX}/subscriptions/webhook`, express.raw({ type: 'application/json' }), stripeWebhook);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -28,6 +30,18 @@ app.use(morgan(config.env === 'development' ? 'dev' : 'combined'));
 
 app.get(`${API_PREFIX}/health`, (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get(`${API_PREFIX}/subscriptions/success`, (_req, res) => {
+  res.type('html').send(
+    '<h2>Subscription payment successful</h2><p>Your payment was received. You can close this page.</p>'
+  );
+});
+
+app.get(`${API_PREFIX}/subscriptions/cancel`, (_req, res) => {
+  res.type('html').send(
+    '<h2>Subscription checkout canceled</h2><p>No payment was charged. You can return to the app.</p>'
+  );
 });
 
 app.use(`${API_PREFIX}/auth`, authRoutes);

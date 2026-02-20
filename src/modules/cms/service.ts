@@ -15,7 +15,11 @@ const CMS_TITLES: Record<CmsKey, string> = {
 };
 
 export const upsertContent = (key: CmsPayload['key'], payload: CmsPayload): Promise<CmsDocument> => {
-  return CmsModel.findOneAndUpdate({ key }, { ...payload, key }, { upsert: true, new: true, setDefaultsOnInsert: true });
+  return CmsModel.findOneAndUpdate(
+    { key },
+    { ...payload, key },
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+  );
 };
 
 export const getContent = (key: CmsPayload['key']): Promise<CmsDocument | null> => {
@@ -32,6 +36,6 @@ export const updateTextByKey = async (key: CmsKey, text: string): Promise<CmsDoc
   return CmsModel.findOneAndUpdate(
     { key },
     { key, title, content: text },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
   );
 };

@@ -8,6 +8,9 @@ export interface SubscriptionDocument extends Document {
   expiryDate: Date;
   status: SubscriptionStatus;
   couponCode?: string;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  stripeCheckoutSessionId?: string;
   startedAt: Date;
 }
 
@@ -19,6 +22,9 @@ const SubscriptionSchema = new Schema<SubscriptionDocument>(
     expiryDate: { type: Date, required: true },
     status: { type: String, enum: Object.values(SUBSCRIPTION_STATUS), default: SUBSCRIPTION_STATUS.ACTIVE },
     couponCode: String,
+    stripeCustomerId: { type: String, index: true },
+    stripeSubscriptionId: { type: String, index: true, sparse: true },
+    stripeCheckoutSessionId: String,
     startedAt: { type: Date, default: Date.now }
   },
   { timestamps: true }

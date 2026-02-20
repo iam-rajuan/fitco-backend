@@ -7,6 +7,9 @@ export interface TransactionDocument extends Document {
   status: 'paid' | 'failed';
   reference: string;
   couponCode?: string;
+  stripeCheckoutSessionId?: string;
+  stripeSubscriptionId?: string;
+  stripeInvoiceId?: string;
   meta?: Record<string, unknown>;
 }
 
@@ -18,6 +21,9 @@ const TransactionSchema = new Schema<TransactionDocument>(
     status: { type: String, enum: ['paid', 'failed'], default: 'paid' },
     reference: { type: String, required: true },
     couponCode: String,
+    stripeCheckoutSessionId: { type: String, index: true },
+    stripeSubscriptionId: { type: String, index: true },
+    stripeInvoiceId: { type: String, index: true },
     meta: { type: Object }
   },
   { timestamps: true }

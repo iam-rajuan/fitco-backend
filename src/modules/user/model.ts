@@ -24,6 +24,7 @@ export interface UserDocument extends Document {
   goals?: string;
   medicalConditions?: string;
   foodAllergies?: string;
+  stripeCustomerId?: string;
   subscriptionStatus: 'free' | 'premium';
   isBlocked: boolean;
   refreshTokens: RefreshToken[];
@@ -61,6 +62,7 @@ const UserSchema = new Schema<UserDocument>(
     goals: String,
     medicalConditions: String,
     foodAllergies: String,
+    stripeCustomerId: { type: String, index: true },
     subscriptionStatus: { type: String, enum: ['free', 'premium'], default: 'free' },
     isBlocked: { type: Boolean, default: false },
     refreshTokens: [RefreshTokenSchema]

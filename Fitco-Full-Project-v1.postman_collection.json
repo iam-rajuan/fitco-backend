@@ -947,7 +947,32 @@
       "name": "05 - Subscriptions",
       "item": [
         {
-          "name": "Create Subscription (User)",
+          "name": "Get Subscription Plans (User)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "plans"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Subscription Quote (User)",
           "request": {
             "method": "POST",
             "header": [
@@ -962,7 +987,73 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"planType\": \"monthly\",\n  \"price\": 999,\n  \"couponCode\": \"WELCOME10\"\n}"
+              "raw": "{\n  \"planType\": \"monthly\",\n  \"couponCode\": \"WELCOME10\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "quote"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Stripe Checkout Session (User)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planType\": \"monthly\",\n  \"couponCode\": \"WELCOME10\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/checkout-session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "checkout-session"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Subscription (Alias to Checkout Session)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planType\": \"yearly\",\n  \"couponCode\": \"WELCOME10\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/subscriptions",
@@ -975,6 +1066,40 @@
                 "subscriptions"
               ]
             }
+          },
+          "response": []
+        },
+        {
+          "name": "Stripe Webhook (Reference)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "stripe-signature",
+                "value": "{{stripeWebhookSignature}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_test_webhook\",\n  \"object\": \"event\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "webhook"
+              ]
+            },
+            "description": "Use Stripe CLI to send signed events. This request is only a placeholder."
           },
           "response": []
         },
@@ -1619,6 +1744,64 @@
           "response": []
         },
         {
+          "name": "Get Subscription Pricing (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/dashboard/subscription-pricing",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard",
+                "subscription-pricing"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Subscription Pricing (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monthlyPriceCents\": 999,\n  \"yearlyPriceCents\": 9999,\n  \"currency\": \"usd\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/dashboard/subscription-pricing",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard",
+                "subscription-pricing"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Transactions",
           "request": {
             "method": "GET",
@@ -1749,6 +1932,10 @@
     {
       "key": "adminOtp",
       "value": "123456"
+    },
+    {
+      "key": "stripeWebhookSignature",
+      "value": "t=0,v1=replace_with_real_signature"
     }
   ]
 }
