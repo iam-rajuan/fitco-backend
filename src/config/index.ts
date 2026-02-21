@@ -39,7 +39,7 @@ const config: AppConfig = {
     refreshExpiresIn: '7d'
   },
   chat: {
-    freeLimit: Number(process.env.CHAT_FREE_DAILY_LIMIT || 10)
+    freeLimit: 10
   },
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY || '',
