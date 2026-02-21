@@ -15,6 +15,7 @@ export interface PaginatedResult<T> {
 interface ListParams {
   page?: number | string;
   limit?: number | string;
+  blocked?: boolean;
 }
 
 export const ACTIVITY_LEVEL_OPTIONS = [
@@ -50,13 +51,19 @@ interface HealthPayload {
   foodAllergies?: string;
 }
 
-export const getUsers = async ({ page = 1, limit = 20 }: ListParams): Promise<PaginatedResult<UserDocument>> => {
+export const getUsers = async ({ page = 1, limit = 20, blocked }: ListParams): Promise<PaginatedResult<UserDocument>> => {
   const pageNumber = Number(page) || 1;
   const limitNumber = Number(limit) || 20;
   const skip = (pageNumber - 1) * limitNumber;
+  const query: Record<string, unknown> = {};
+
+  if (typeof blocked === 'boolean') {
+    query.isBlocked = blocked;
+  }
+
   const [data, total] = await Promise.all([
-    UserModel.find().select('-password -refreshTokens').sort({ createdAt: -1 }).skip(skip).limit(limitNumber),
-    UserModel.countDocuments()
+    UserModel.find(query).select('-password -refreshTokens').sort({ createdAt: -1 }).skip(skip).limit(limitNumber),
+    UserModel.countDocuments(query)
   ]);
   return {
     data,
@@ -74,7 +81,12 @@ export const getUserById = (id: string): Promise<UserDocument | null> => {
 };
 
 export const setUserBlockStatus = (id: string, isBlocked: boolean): Promise<UserDocument | null> => {
-  return UserModel.findByIdAndUpdate(id, { isBlocked }, { new: true }).select('-password -refreshTokens');
+  const update: Record<string, unknown> = { isBlocked };
+  if (isBlocked) {
+    // Revoke all active sessions so blocked users cannot refresh existing tokens.
+    update.refreshTokens = [];
+  }
+  return UserModel.findByIdAndUpdate(id, update, { new: true }).select('-password -refreshTokens');
 };
 
 export const getMyProfile = (id: string): Promise<UserDocument | null> => {

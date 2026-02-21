@@ -35,6 +35,7 @@ export const updatePassword = async (id: string, newPassword: string): Promise<A
 
 interface UpdateAdminProfilePayload {
   name?: string;
+  username?: string;
   email?: string;
   contactNo?: string;
 }
@@ -43,7 +44,8 @@ const hashResetCode = (code: string): string => crypto.createHash('sha256').upda
 
 export const updateProfile = async (id: string, payload: UpdateAdminProfilePayload): Promise<AdminDocument | null> => {
   const update: Record<string, any> = {};
-  if (payload.name !== undefined) update.name = payload.name;
+  const resolvedName = payload.name ?? payload.username;
+  if (resolvedName !== undefined) update.name = resolvedName;
   if (payload.contactNo !== undefined) update.contactNo = payload.contactNo;
 
   if (payload.email !== undefined) {

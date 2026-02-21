@@ -18,14 +18,15 @@ const allowOnlyFields = (allowedFields: string[]) =>
 
 const profileValidators = [
   body('name').optional().isString().trim().notEmpty(),
+  body('username').optional().isString().trim().notEmpty(),
   body('email').optional().isEmail(),
   body('contactNo').optional().isString().trim().notEmpty(),
   body().custom((value) => {
     if (!value || typeof value !== 'object') {
       throw new Error('Request body must be a JSON object');
     }
-    if (value.name === undefined && value.email === undefined && value.contactNo === undefined) {
-      throw new Error('At least one of name, email, or contactNo is required');
+    if (value.name === undefined && value.username === undefined && value.email === undefined && value.contactNo === undefined) {
+      throw new Error('At least one of name, username, email, or contactNo is required');
     }
     return true;
   })
@@ -48,6 +49,7 @@ export const getProfile = asyncHandler(async (req: Request, res: Response) => {
   res.json({
     id: admin._id,
     name: admin.name,
+    username: admin.name,
     email: admin.email,
     contactNo: admin.contactNo,
     role: admin.role,
@@ -59,7 +61,13 @@ export const updateProfile = [
   ...profileValidators,
   validate,
   asyncHandler(async (req: Request, res: Response) => {
-    const admin = await adminService.updateProfile(req.auth!.id, req.body);
+    const { name, username, email, contactNo } = req.body as {
+      name?: string;
+      username?: string;
+      email?: string;
+      contactNo?: string;
+    };
+    const admin = await adminService.updateProfile(req.auth!.id, { name, username, email, contactNo });
     if (!admin) {
       return res.status(404).json({ message: 'Admin not found' });
     }
@@ -68,6 +76,7 @@ export const updateProfile = [
       admin: {
         id: admin._id,
         name: admin.name,
+        username: admin.name,
         email: admin.email,
         contactNo: admin.contactNo,
         role: admin.role

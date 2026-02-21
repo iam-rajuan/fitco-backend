@@ -9,6 +9,23 @@ interface CouponPayload {
 
 export const createCoupon = async (data: CouponPayload): Promise<CouponDocument> => {
   const payload = { ...data, code: data.code.toUpperCase() };
+  const existingCoupons = await CouponModel.find().sort({ createdAt: -1 });
+
+  if (existingCoupons.length > 0) {
+    const primary = existingCoupons[0];
+    primary.code = payload.code;
+    primary.discountPercentage = payload.discountPercentage;
+    primary.expiryDate = new Date(payload.expiryDate);
+    primary.isActive = payload.isActive ?? true;
+    await primary.save();
+
+    if (existingCoupons.length > 1) {
+      await CouponModel.deleteMany({ _id: { $ne: primary._id } });
+    }
+
+    return primary;
+  }
+
   return CouponModel.create(payload);
 };
 

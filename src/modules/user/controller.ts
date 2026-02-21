@@ -44,7 +44,17 @@ const goalValidators = [
 export const listUsers = asyncHandler(async (req: Request, res: Response) => {
   const page = getSingleQueryParam(req.query.page) ?? '1';
   const limit = getSingleQueryParam(req.query.limit) ?? '20';
-  const result = await userService.getUsers({ page, limit });
+  const blockedQuery = getSingleQueryParam(req.query.blocked);
+  const blocked =
+    blockedQuery === undefined
+      ? undefined
+      : blockedQuery.toLowerCase() === 'true'
+        ? true
+        : blockedQuery.toLowerCase() === 'false'
+          ? false
+          : undefined;
+
+  const result = await userService.getUsers({ page, limit, blocked });
   res.json(result);
 });
 

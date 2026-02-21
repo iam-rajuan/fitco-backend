@@ -117,6 +117,11 @@ export const refreshTokens = async (token: string): Promise<AuthResponse> => {
     (error as any).statusCode = 401;
     throw error;
   }
+  if (payload.role === ROLES.USER && (account as UserDocument).isBlocked) {
+    const error = new Error('Account is blocked');
+    (error as any).statusCode = 403;
+    throw error;
+  }
   const stored = (account.refreshTokens || []).find((item) => item.token === token && item.expiresAt > new Date());
   if (!stored) {
     const error = new Error('Refresh token revoked');
