@@ -47,8 +47,8 @@ const config: AppConfig = {
     currency: process.env.STRIPE_CURRENCY || 'usd',
     monthlyPriceCents: Number(process.env.STRIPE_MONTHLY_PRICE_CENTS || 999),
     yearlyPriceCents: Number(process.env.STRIPE_YEARLY_PRICE_CENTS || 9999),
-    successUrl: process.env.STRIPE_SUCCESS_URL || 'http://localhost:5000/api/v1/subscriptions/success',
-    cancelUrl: process.env.STRIPE_CANCEL_URL || 'http://localhost:5000/api/v1/subscriptions/cancel'
+    successUrl: process.env.STRIPE_SUCCESS_URL || '',
+    cancelUrl: process.env.STRIPE_CANCEL_URL || ''
   }
 };
 
