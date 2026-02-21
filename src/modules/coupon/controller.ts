@@ -7,12 +7,29 @@ import validate from '../../middlewares/validationMiddleware';
 const createValidators = [
   body('code').notEmpty(),
   body('discountPercentage').isInt({ min: 0, max: 100 }),
-  body('expiryDate').isISO8601()
+  body('expiryDate')
+    .isISO8601()
+    .custom((value) => {
+      const expiry = new Date(value);
+      if (Number.isNaN(expiry.getTime()) || expiry <= new Date()) {
+        throw new Error('expiryDate must be a future date-time');
+      }
+      return true;
+    })
 ];
 
 const updateValidators = [
   body('discountPercentage').optional().isInt({ min: 0, max: 100 }),
-  body('expiryDate').optional().isISO8601()
+  body('expiryDate')
+    .optional()
+    .isISO8601()
+    .custom((value) => {
+      const expiry = new Date(value);
+      if (Number.isNaN(expiry.getTime()) || expiry <= new Date()) {
+        throw new Error('expiryDate must be a future date-time');
+      }
+      return true;
+    })
 ];
 
 export const createCoupon = [

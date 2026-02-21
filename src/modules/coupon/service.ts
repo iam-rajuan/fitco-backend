@@ -13,15 +13,14 @@ export const createCoupon = async (data: CouponPayload): Promise<CouponDocument>
 
   if (existingCoupons.length > 0) {
     const primary = existingCoupons[0];
+    if (existingCoupons.length > 1) {
+      await CouponModel.deleteMany({ _id: { $ne: primary._id } });
+    }
     primary.code = payload.code;
     primary.discountPercentage = payload.discountPercentage;
     primary.expiryDate = new Date(payload.expiryDate);
     primary.isActive = payload.isActive ?? true;
     await primary.save();
-
-    if (existingCoupons.length > 1) {
-      await CouponModel.deleteMany({ _id: { $ne: primary._id } });
-    }
 
     return primary;
   }
