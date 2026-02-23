@@ -4,6 +4,7 @@ import asyncHandler from '../../utils/asyncHandler';
 import * as subscriptionService from './service';
 import validate from '../../middlewares/validationMiddleware';
 import { getSingleQueryParam } from '../../utils/query';
+import { PLAN_TYPES } from '../../utils/constants';
 
 const quoteValidators = [
   body('planType').isIn(['monthly', 'yearly']),
@@ -65,3 +66,31 @@ export const getSubscriptionDetails = asyncHandler(async (req: Request, res: Res
   }
   res.json(subscription);
 });
+
+export const updateSubscriptionStatus = [
+  body('status').isIn(['paid', 'free']),
+  validate,
+  asyncHandler(async (req: Request, res: Response) => {
+    const updated = await subscriptionService.updateSubscriptionStatus({
+      subscriptionId: req.params.id as string,
+      status: req.body.status
+    });
+    res.json(updated);
+  })
+];
+
+export const updateUserSubscriptionStatus = [
+  body('status').isIn(['paid', 'free']),
+  body('planType')
+    .optional()
+    .isIn(Object.values(PLAN_TYPES)),
+  validate,
+  asyncHandler(async (req: Request, res: Response) => {
+    const updated = await subscriptionService.updateUserSubscriptionStatus({
+      userId: req.params.userId as string,
+      status: req.body.status,
+      planType: req.body.planType
+    });
+    res.json(updated);
+  })
+];

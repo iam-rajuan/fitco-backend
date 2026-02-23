@@ -71,6 +71,8 @@ interface PricingSettingsResponse {
   updatedAt: Date;
 }
 
+type ManualSubscriptionStatus = 'paid' | 'free';
+
 const centsToAmount = (value: number): number => Number((value / 100).toFixed(2));
 
 const parsePlanInterval = (planType: PlanType): 'month' | 'year' => (planType === PLAN_TYPES.YEARLY ? 'year' : 'month');
@@ -610,4 +612,70 @@ export const getUserActiveSubscription = async (userId: string): Promise<Subscri
 
 export const expireSubscription = (id: string): Promise<SubscriptionDocument | null> => {
   return SubscriptionModel.findByIdAndUpdate(id, { status: SUBSCRIPTION_STATUS.EXPIRED }, { new: true });
+};
+
+export const updateSubscriptionStatus = async ({
+  subscriptionId,
+  status
+}: {
+  subscriptionId: string;
+  status: ManualSubscriptionStatus;
+}): Promise<SubscriptionDocument> => {
+  const subscription = await SubscriptionModel.findById(subscriptionId);
+  if (!subscription) {
+    const error = new Error('Subscription not found');
+    (error as any).statusCode = 404;
+    throw error;
+  }
+
+  if (status === 'paid') {
+    subscription.status = SUBSCRIPTION_STATUS.ACTIVE;
+    subscription.expiryDate = calculateExpiryByPlan(subscription.planType);
+  } else {
+    subscription.status = SUBSCRIPTION_STATUS.EXPIRED;
+    subscription.expiryDate = new Date();
+  }
+
+  await subscription.save();
+  await syncUserSubscriptionStatus(subscription.user.toString());
+  await subscription.populate('user', 'name email');
+
+  return subscription;
+};
+
+export const updateUserSubscriptionStatus = async ({
+  userId,
+  status,
+  planType
+}: {
+  userId: string;
+  status: ManualSubscriptionStatus;
+  planType?: PlanType;
+}): Promise<SubscriptionDocument> => {
+  const targetPlanType = planType && Object.values(PLAN_TYPES).includes(planType) ? planType : PLAN_TYPES.MONTHLY;
+  let subscription = await SubscriptionModel.findOne({ user: userId }).sort({ createdAt: -1 });
+
+  if (!subscription) {
+    const pricing = await getPricingContext();
+    const planPriceCents = getPlanPriceCents(targetPlanType, pricing);
+    subscription = await SubscriptionModel.create({
+      user: userId,
+      planType: targetPlanType,
+      price: centsToAmount(planPriceCents),
+      expiryDate: calculateExpiryByPlan(targetPlanType),
+      status: status === 'paid' ? SUBSCRIPTION_STATUS.ACTIVE : SUBSCRIPTION_STATUS.EXPIRED
+    });
+  } else if (status === 'paid') {
+    subscription.status = SUBSCRIPTION_STATUS.ACTIVE;
+    subscription.expiryDate = calculateExpiryByPlan(subscription.planType);
+  } else {
+    subscription.status = SUBSCRIPTION_STATUS.EXPIRED;
+    subscription.expiryDate = new Date();
+  }
+
+  await subscription.save();
+  await syncUserSubscriptionStatus(userId);
+  await subscription.populate('user', 'name email');
+
+  return subscription;
 };

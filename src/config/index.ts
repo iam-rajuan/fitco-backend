@@ -29,9 +29,9 @@ export interface AppConfig {
 }
 
 const config: AppConfig = {
-  env: process.env.NODE_ENV || 'development',
-  port: Number(process.env.PORT) || 5000,
-  mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017/creedtng',
+  env: process.env.NODE_ENV || '',
+  port: Number(process.env.PORT),
+  mongoUri: process.env.MONGO_URI || '',
   jwt: {
     accessSecret: process.env.JWT_SECRET || 'changemeaccess',
     refreshSecret: process.env.JWT_REFRESH_SECRET || 'changemerefresh',
