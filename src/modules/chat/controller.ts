@@ -19,3 +19,8 @@ export const getHistory = asyncHandler(async (req: Request, res: Response) => {
   const history = await chatService.getHistory(req.auth!.id);
   res.json(history);
 });
+
+export const getMyChatLimit = asyncHandler(async (req: Request, res: Response) => {
+  const limit = await chatService.getChatLimitStatus(req.auth!.id);
+  res.json(limit);
+});

@@ -1,0 +1,132 @@
+{
+  "info": {
+    "name": "Fitco User Combined Profile API v1",
+    "description": "Login + single merged API to update profile, health, activity level, and goal in one request.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Login User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+              "if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User - Update Complete Profile (Merged API)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"age\": 27,\n  \"height\": 175,\n  \"currentWeight\": 74,\n  \"gender\": \"male\",\n  \"medicalConditions\": \"None\",\n  \"foodAllergies\": \"Peanuts\",\n  \"activityLevel\": \"moderately_active\",\n  \"goal\": \"maintain_weight\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/me/complete-profile",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "users",
+            "me",
+            "complete-profile"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Chat - Daily Free Limit Status",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/chat/limit",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "chat",
+            "limit"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "userEmail",
+      "value": "john.doe@example.com"
+    },
+    {
+      "key": "userPassword",
+      "value": "Password123"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    }
+  ]
+}

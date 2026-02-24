@@ -12,6 +12,7 @@ import {
   setMyGoal,
   submitOnboarding,
   unblockUser,
+  upsertMyCompleteProfile,
   upsertMyHealthInfo,
   upsertMyProfile
 } from './controller';
@@ -21,6 +22,7 @@ const router = Router();
 router.get('/me', authenticate, authorizeRoles(ROLES.USER), getMyProfile);
 router.patch('/me/profile', authenticate, authorizeRoles(ROLES.USER), upsertMyProfile);
 router.patch('/me/health', authenticate, authorizeRoles(ROLES.USER), upsertMyHealthInfo);
+router.patch('/me/complete-profile', authenticate, authorizeRoles(ROLES.USER), upsertMyCompleteProfile);
 router.post('/me/onboarding', authenticate, authorizeRoles(ROLES.USER), submitOnboarding);
 router.get('/meta/activity-levels', authenticate, authorizeRoles(ROLES.USER), listActivityLevels);
 router.get('/meta/goals', authenticate, authorizeRoles(ROLES.USER), listGoalOptions);

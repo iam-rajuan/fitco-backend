@@ -41,6 +41,27 @@ const goalValidators = [
   body('goal').isIn(userService.GOAL_OPTIONS.map((item) => item.key))
 ];
 
+const completeProfileValidators = [
+  allowOnlyFields([
+    'age',
+    'height',
+    'currentWeight',
+    'gender',
+    'activityLevel',
+    'goal',
+    'medicalConditions',
+    'foodAllergies'
+  ]),
+  body().custom((value) => {
+    if (Object.keys(value).length === 0) {
+      throw new Error('At least one field is required');
+    }
+    return true;
+  }),
+  ...profileValidators,
+  ...healthValidators
+];
+
 export const listUsers = asyncHandler(async (req: Request, res: Response) => {
   const page = getSingleQueryParam(req.query.page) ?? '1';
   const limit = getSingleQueryParam(req.query.limit) ?? '20';
@@ -159,5 +180,31 @@ export const setMyGoal = [
     }
     const selection = userService.GOAL_OPTIONS.find((item) => item.key === req.body.goal);
     res.json({ message: 'Goal updated', selection, user });
+  })
+];
+
+export const upsertMyCompleteProfile = [
+  ...completeProfileValidators,
+  validate,
+  asyncHandler(async (req: Request, res: Response) => {
+    const profile = await userService.updateProfile(req.auth!.id, req.body);
+    if (!profile) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const user = await userService.updateHealthInfo(req.auth!.id, req.body);
+    const activityLevelSelection =
+      req.body.activityLevel !== undefined
+        ? userService.ACTIVITY_LEVEL_OPTIONS.find((item) => item.key === req.body.activityLevel)
+        : undefined;
+    const goalSelection =
+      req.body.goal !== undefined ? userService.GOAL_OPTIONS.find((item) => item.key === req.body.goal) : undefined;
+
+    res.json({
+      message: 'Profile, health, activity level, and goal updated',
+      activityLevelSelection,
+      goalSelection,
+      user
+    });
   })
 ];

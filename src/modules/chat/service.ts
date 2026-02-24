@@ -9,6 +9,41 @@ interface ChatResponse {
   record: ChatDocument;
 }
 
+export interface ChatLimitStatus {
+  subscriptionStatus: 'free' | 'premium';
+  isUnlimited: boolean;
+  dailyFreeLimit: number;
+  messagesUsedToday: number;
+  messagesLeftToday: number | null;
+}
+
+export const getChatLimitStatus = async (userId: string): Promise<ChatLimitStatus> => {
+  const user = await UserModel.findById(userId);
+  if (!user) {
+    const error = new Error('User not found');
+    (error as any).statusCode = 404;
+    throw error;
+  }
+
+  const activeSubscription = await subscriptionService.getUserActiveSubscription(userId);
+  const isPremium = Boolean(activeSubscription);
+  const subscriptionStatus: 'free' | 'premium' = isPremium ? 'premium' : 'free';
+  await UserModel.findByIdAndUpdate(userId, { subscriptionStatus });
+
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const messagesUsedToday = await ChatModel.countDocuments({ user: userId, createdAt: { $gte: startOfDay } });
+  const messagesLeftToday = isPremium ? null : Math.max(config.chat.freeLimit - messagesUsedToday, 0);
+
+  return {
+    subscriptionStatus,
+    isUnlimited: isPremium,
+    dailyFreeLimit: config.chat.freeLimit,
+    messagesUsedToday,
+    messagesLeftToday
+  };
+};
+
 export const sendMessage = async (userId: string, prompt: string): Promise<ChatResponse> => {
   if (!process.env.OPENAI_API_KEY) {
     const error = new Error('OpenAI API key missing');
