@@ -1,0 +1,351 @@
+{
+  "info": {
+    "name": "Fitco Food Database API",
+    "description": "Postman collection for the Fitco food database module, including admin login, CRUD, paginated search, and barcode lookup.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.collectionVariables.set('adminAccessToken', json.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/admin/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "admin",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Food Database",
+      "item": [
+        {
+          "name": "Import Food CSV (Exact Sheet Format)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"csvContent\": \" BRAND,PRODUCT,SERVING SIZE,CALORIES,PROTEIN,CARBS,FAT,BARCODE ID\\nالمراعي,حليب كامل الدسم,250ml,152,8,12,8,6281007120807\\nNestlé,Coffee mate original,100g,546,2,57,35,8850124020000\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/food-database/import-csv",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "food-database",
+                "import-csv"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Food Item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json._id) pm.collectionVariables.set('foodId', json._id);",
+                  "if (json.barcode) pm.collectionVariables.set('foodBarcode', json.barcode);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brand\": \"Almarai\",\n  \"product\": \"Full Fat Milk\",\n  \"servingSize\": 250,\n  \"servingUnit\": \"ml\",\n  \"calories\": 152,\n  \"protein\": 8,\n  \"carbs\": 12,\n  \"fat\": 8,\n  \"barcode\": \"6281007102807\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/food-database",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "food-database"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Food Items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/food-database?page=1&limit=10&search=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "food-database"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Food Items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/food-database?page=1&limit=10&search=milk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "food-database"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "milk"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Food Item By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/food-database/{{foodId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "food-database",
+                "{{foodId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Food Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brand\": \"Almarai\",\n  \"product\": \"Full Fat Milk Updated\",\n  \"servingSize\": 240,\n  \"servingUnit\": \"ml\",\n  \"calories\": 148,\n  \"protein\": 8,\n  \"carbs\": 11,\n  \"fat\": 8,\n  \"barcode\": \"{{foodBarcode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/food-database/{{foodId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "food-database",
+                "{{foodId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Lookup Food By Barcode",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/food-database/lookup/barcode/{{foodBarcode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "food-database",
+                "lookup",
+                "barcode",
+                "{{foodBarcode}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Food Item",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/food-database/{{foodId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "food-database",
+                "{{foodId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@example.com"
+    },
+    {
+      "key": "adminPassword",
+      "value": "Admin12345"
+    },
+    {
+      "key": "adminAccessToken",
+      "value": ""
+    },
+    {
+      "key": "foodId",
+      "value": ""
+    },
+    {
+      "key": "foodBarcode",
+      "value": "6281007102807"
+    }
+  ]
+}

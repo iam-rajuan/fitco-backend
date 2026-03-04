@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec \"ts-node src/server.ts\"",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "import:food-csv": "ts-node src/seed/importFoodDatabaseCsv.ts",
+    "report:food-csv": "ts-node src/seed/generateFoodCsvReport.ts"
   },
   "keywords": [],
   "author": "",
