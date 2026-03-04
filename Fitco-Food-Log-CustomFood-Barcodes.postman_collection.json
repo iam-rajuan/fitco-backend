@@ -1,0 +1,540 @@
+{
+  "info": {
+    "name": "Fitco Food Log + Custom Food + Barcode APIs",
+    "description": "Postman collection to test user food logging, custom food creation, and barcode scan flows.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00 - System",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01 - Auth",
+      "item": [
+        {
+          "name": "Register User (Run once)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Food\",\n  \"lastName\": \"Tester\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.collectionVariables.set('userAccessToken', json.accessToken);",
+                  "if (json.refreshToken) pm.collectionVariables.set('userRefreshToken', json.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.collectionVariables.set('adminAccessToken', json.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/admin/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "admin",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Food Database Seed (Admin)",
+      "item": [
+        {
+          "name": "Create Food In Database",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json._id) pm.collectionVariables.set('foodId', json._id);",
+                  "if (json.barcode) pm.collectionVariables.set('dbBarcode', json.barcode);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brand\": \"Almarai\",\n  \"product\": \"Full Fat Milk\",\n  \"servingSize\": 250,\n  \"servingUnit\": \"ml\",\n  \"calories\": 152,\n  \"protein\": 8,\n  \"carbs\": 12,\n  \"fat\": 8,\n  \"barcode\": \"{{dbBarcode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/food-database",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "food-database"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Lookup Database Food By Barcode",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/food-database/lookup/barcode/{{dbBarcode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "food-database",
+                "lookup",
+                "barcode",
+                "{{dbBarcode}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Food Logs (User)",
+      "item": [
+        {
+          "name": "Preview Food Log (Add Food Screen Data)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"foodId\": \"{{foodId}}\",\n  \"meal\": \"breakfast\",\n  \"servings\": 1,\n  \"servingSize\": 250,\n  \"servingUnit\": \"ml\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/food-logs/preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "food-logs",
+                "preview"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Food Log",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json._id) pm.collectionVariables.set('foodLogId', json._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"foodId\": \"{{foodId}}\",\n  \"meal\": \"breakfast\",\n  \"servings\": 1.5,\n  \"servingSize\": 250,\n  \"servingUnit\": \"ml\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/food-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "food-logs"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Food Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/food-logs?date={{logDate}}&meal=breakfast",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "food-logs"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{logDate}}"
+                },
+                {
+                  "key": "meal",
+                  "value": "breakfast"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - Custom Foods (User)",
+      "item": [
+        {
+          "name": "Create Custom Food",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json._id) pm.collectionVariables.set('customFoodId', json._id);",
+                  "if (json.barcode) pm.collectionVariables.set('customBarcode', json.barcode);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"barcode\": \"{{customBarcode}}\",\n  \"foodName\": \"Chicken Breast\",\n  \"brandName\": \"Almarai\",\n  \"servingSize\": \"100g\",\n  \"calories\": 165,\n  \"protein\": 31,\n  \"carbs\": 0,\n  \"fat\": 3.6\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/custom-foods",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "custom-foods"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Custom Foods",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/custom-foods?search=chicken",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "custom-foods"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "chicken"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 - Barcode Scan (User)",
+      "item": [
+        {
+          "name": "Scan Barcode (Find Custom Food First)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/custom-foods/scan/barcode/{{customBarcode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "custom-foods",
+                "scan",
+                "barcode",
+                "{{customBarcode}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Scan Barcode (Fallback To Food Database)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/custom-foods/scan/barcode/{{dbBarcode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "custom-foods",
+                "scan",
+                "barcode",
+                "{{dbBarcode}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@example.com"
+    },
+    {
+      "key": "adminPassword",
+      "value": "Admin12345"
+    },
+    {
+      "key": "userEmail",
+      "value": "foodtester@example.com"
+    },
+    {
+      "key": "userPassword",
+      "value": "User12345"
+    },
+    {
+      "key": "adminAccessToken",
+      "value": ""
+    },
+    {
+      "key": "userAccessToken",
+      "value": ""
+    },
+    {
+      "key": "userRefreshToken",
+      "value": ""
+    },
+    {
+      "key": "foodId",
+      "value": ""
+    },
+    {
+      "key": "foodLogId",
+      "value": ""
+    },
+    {
+      "key": "customFoodId",
+      "value": ""
+    },
+    {
+      "key": "dbBarcode",
+      "value": "6281007102807"
+    },
+    {
+      "key": "customBarcode",
+      "value": "9990001112223"
+    },
+    {
+      "key": "logDate",
+      "value": "2026-03-05"
+    }
+  ]
+}
