@@ -1,0 +1,488 @@
+{
+  "info": {
+    "name": "Fitco User Nutrition Workflow APIs",
+    "description": "User-only Postman collection for food browsing, food detail, custom food, barcode scan, preview, meal logging, daily dashboard, weekly analytics, insights, and nutrition goals.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - Foods",
+      "item": [
+        {
+          "name": "Browse Foods (Pagination, 50/page)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/foods?page=1&limit=50&q=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "foods"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "q",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Foods",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/foods?page=1&limit=50&q={{searchQuery}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "foods"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "q",
+                  "value": "{{searchQuery}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Food Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/foods/{{foodId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "foods",
+                "{{foodId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Scan Barcode",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/foods/scan/barcode/{{barcode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "foods",
+                "scan",
+                "barcode",
+                "{{barcode}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Custom Foods",
+      "item": [
+        {
+          "name": "Create Custom Food",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('customFoodId', json.id);",
+                  "if (json._id) pm.collectionVariables.set('customFoodId', json._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"barcode\": \"{{customBarcode}}\",\n  \"name\": \"Chicken Breast\",\n  \"brand\": \"Almarai\",\n  \"defaultServing\": {\n    \"label\": \"100 grams\",\n    \"amount\": 100,\n    \"unit\": \"g\"\n  },\n  \"servingOptions\": [\n    {\n      \"id\": \"serving_100g\",\n      \"label\": \"100 grams\",\n      \"amount\": 100,\n      \"unit\": \"g\",\n      \"multiplierToDefault\": 1\n    },\n    {\n      \"id\": \"serving_1cup\",\n      \"label\": \"1 cup\",\n      \"amount\": 140,\n      \"unit\": \"g\",\n      \"multiplierToDefault\": 1.4\n    }\n  ],\n  \"nutritionPerDefaultServing\": {\n    \"calories\": 165,\n    \"protein\": 31,\n    \"carbs\": 0,\n    \"fat\": 3.6\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/custom-foods",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "custom-foods"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Meal Logs",
+      "item": [
+        {
+          "name": "Nutrition Preview",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceType\": \"master\",\n  \"foodId\": \"{{foodId}}\",\n  \"servingOptionId\": \"{{servingOptionId}}\",\n  \"servings\": 1.5,\n  \"mealType\": \"breakfast\",\n  \"date\": \"{{date}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/meal-logs/preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "meal-logs",
+                "preview"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Meal Log",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('mealLogId', json.id);",
+                  "if (json._id) pm.collectionVariables.set('mealLogId', json._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceType\": \"master\",\n  \"foodId\": \"{{foodId}}\",\n  \"servingOptionId\": \"{{servingOptionId}}\",\n  \"servings\": 1,\n  \"mealType\": \"breakfast\",\n  \"date\": \"{{date}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/meal-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "meal-logs"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - Dashboard",
+      "item": [
+        {
+          "name": "Get Daily Nutrition Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/nutrition/daily?date={{date}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "nutrition",
+                "daily"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{date}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Weekly Nutrition Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/nutrition/weekly?endDate={{date}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "nutrition",
+                "weekly"
+              ],
+              "query": [
+                {
+                  "key": "endDate",
+                  "value": "{{date}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Today's Insights",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/insights/today?date={{date}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "insights",
+                "today"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{date}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 - Nutrition Goals",
+      "item": [
+        {
+          "name": "Get Nutrition Goals",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/nutrition-goals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "nutrition-goals"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Nutrition Goals",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dailyGoals\": {\n    \"calories\": 2400,\n    \"protein\": 180,\n    \"carbs\": 250,\n    \"fat\": 70\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/nutrition-goals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "nutrition-goals"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "userAccessToken",
+      "value": ""
+    },
+    {
+      "key": "foodId",
+      "value": ""
+    },
+    {
+      "key": "servingOptionId",
+      "value": "serving_1"
+    },
+    {
+      "key": "barcode",
+      "value": "6281007102807"
+    },
+    {
+      "key": "customBarcode",
+      "value": "9990001112223"
+    },
+    {
+      "key": "searchQuery",
+      "value": "milk"
+    },
+    {
+      "key": "date",
+      "value": "2026-03-05"
+    },
+    {
+      "key": "customFoodId",
+      "value": ""
+    },
+    {
+      "key": "mealLogId",
+      "value": ""
+    }
+  ]
+}

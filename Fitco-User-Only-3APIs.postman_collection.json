@@ -1,0 +1,122 @@
+{
+  "info": {
+    "name": "Fitco User Only - 3 APIs",
+    "description": "User-only collection with exactly 3 APIs: create log food, create custom food, scan barcode.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Log Food",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{userAccessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"foodId\": \"{{foodId}}\",\n  \"meal\": \"breakfast\",\n  \"servings\": 1,\n  \"servingSize\": 250,\n  \"servingUnit\": \"ml\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/food-logs",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "food-logs"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Custom Food",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{userAccessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"barcode\": \"{{customBarcode}}\",\n  \"foodName\": \"Chicken Breast\",\n  \"brandName\": \"Almarai\",\n  \"servingSize\": \"100g\",\n  \"calories\": 165,\n  \"protein\": 31,\n  \"carbs\": 0,\n  \"fat\": 3.6\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/custom-foods",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "custom-foods"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Scan Barcode",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{userAccessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/custom-foods/scan/barcode/{{scanBarcode}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "custom-foods",
+            "scan",
+            "barcode",
+            "{{scanBarcode}}"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "userAccessToken",
+      "value": ""
+    },
+    {
+      "key": "foodId",
+      "value": ""
+    },
+    {
+      "key": "customBarcode",
+      "value": "9990001112223"
+    },
+    {
+      "key": "scanBarcode",
+      "value": "9990001112223"
+    }
+  ]
+}
