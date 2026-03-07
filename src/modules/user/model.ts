@@ -26,6 +26,10 @@ export interface UserDocument extends Document {
   foodAllergies?: string;
   stripeCustomerId?: string;
   subscriptionStatus: 'free' | 'premium';
+  dailyCalorieGoal?: number;
+  dailyProteinGoal?: number;
+  dailyCarbGoal?: number;
+  dailyFatGoal?: number;
   isBlocked: boolean;
   refreshTokens: RefreshToken[];
   comparePassword(candidate: string): Promise<boolean>;
@@ -64,6 +68,10 @@ const UserSchema = new Schema<UserDocument>(
     foodAllergies: String,
     stripeCustomerId: { type: String, index: true },
     subscriptionStatus: { type: String, enum: ['free', 'premium'], default: 'free' },
+    dailyCalorieGoal: { type: Number, min: 1 },
+    dailyProteinGoal: { type: Number, min: 0 },
+    dailyCarbGoal: { type: Number, min: 0 },
+    dailyFatGoal: { type: Number, min: 0 },
     isBlocked: { type: Boolean, default: false },
     refreshTokens: [RefreshTokenSchema]
   },

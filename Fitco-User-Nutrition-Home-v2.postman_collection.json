@@ -1,0 +1,140 @@
+{
+  "info": {
+    "name": "Fitco User Nutrition Home v2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "User-only nutrition workflow: custom foods, one log-food GET API, preview/add by foodId only, home totals, daily goals, weekly summary"
+  },
+  "item": [
+    {
+      "name": "1) Custom Food (User Only)",
+      "item": [
+        {
+          "name": "Create Custom Food",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"barcode\": \"8901234567890\",\n  \"foodName\": \"My Oats Bowl\",\n  \"brandName\": \"MyKitchen\",\n  \"servingSize\": \"1 bowl\",\n  \"calories\": 320,\n  \"protein\": 18,\n  \"carbs\": 42,\n  \"fat\": 9\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/custom-foods"
+          }
+        },
+        {
+          "name": "Scan Barcode (Custom First, Then Global)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/custom-foods/scan/barcode/{{barcode}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2) Log Food (ONE GET API)",
+      "item": [
+        {
+          "name": "Get All Foods for Log Screen (Global + My Custom, Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/food-logs/log-foods?page={{page}}&limit={{limit}}&search={{search}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3) Add Food to Meal Plan (Home)",
+      "item": [
+        {
+          "name": "Preview Add (by foodId only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"foodId\": \"{{foodId}}\",\n  \"meal\": \"breakfast\",\n  \"servings\": 1.5,\n  \"servingSize\": 100,\n  \"servingUnit\": \"g\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/food-logs/preview"
+          }
+        },
+        {
+          "name": "Add to Meal Plan (by foodId only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"foodId\": \"{{foodId}}\",\n  \"meal\": \"dinner\",\n  \"servings\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/food-logs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4) Home + Goals + Weekly",
+      "item": [
+        {
+          "name": "Set Daily Goal (30/40/30)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"calories\": 2200\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/users/me/daily-goal"
+          }
+        },
+        {
+          "name": "Home Data (Daily Totals + Meals)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/food-logs/home?date={{date}}"
+          }
+        },
+        {
+          "name": "Weekly Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/food-logs/weekly-summary?startDate={{weekStartDate}}"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "userToken", "value": "" },
+    { "key": "barcode", "value": "8901234567890" },
+    { "key": "foodId", "value": "" },
+    { "key": "date", "value": "2026-03-07" },
+    { "key": "weekStartDate", "value": "2026-03-02" },
+    { "key": "page", "value": "1" },
+    { "key": "limit", "value": "20" },
+    { "key": "search", "value": "" }
+  ]
+}

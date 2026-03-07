@@ -3,6 +3,8 @@ import { FOOD_SERVING_UNITS, FoodServingUnit } from '../foodDatabase/model';
 
 export const FOOD_LOG_MEALS = ['breakfast', 'lunch', 'dinner'] as const;
 export type FoodLogMeal = (typeof FOOD_LOG_MEALS)[number];
+export const FOOD_LOG_SOURCES = ['database', 'custom'] as const;
+export type FoodLogSource = (typeof FOOD_LOG_SOURCES)[number];
 
 interface MacroBreakdown {
   grams: number;
@@ -31,6 +33,7 @@ interface DailyGoalProgressMap {
 export interface FoodLogDocument extends Document {
   user: mongoose.Types.ObjectId;
   food: mongoose.Types.ObjectId;
+  foodSource: FoodLogSource;
   foodName: string;
   brandName: string;
   meal: FoodLogMeal;
@@ -71,6 +74,7 @@ const FoodLogSchema = new Schema<FoodLogDocument>(
   {
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     food: { type: Schema.Types.ObjectId, ref: 'FoodDatabase', required: true, index: true },
+    foodSource: { type: String, enum: FOOD_LOG_SOURCES, required: true, default: 'database', index: true },
     foodName: { type: String, required: true, trim: true },
     brandName: { type: String, required: true, trim: true },
     meal: { type: String, enum: FOOD_LOG_MEALS, required: true },
