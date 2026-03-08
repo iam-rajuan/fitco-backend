@@ -59,6 +59,11 @@ export const listSubscriptions = asyncHandler(async (req: Request, res: Response
   res.json(data);
 });
 
+export const getMySubscriptionStatus = asyncHandler(async (req: Request, res: Response) => {
+  const data = await subscriptionService.getUserSubscriptionStatus(req.auth!.id);
+  res.json(data);
+});
+
 export const getSubscriptionDetails = asyncHandler(async (req: Request, res: Response) => {
   const subscription = await subscriptionService.getSubscriptionById(req.params.id as string);
   if (!subscription) {

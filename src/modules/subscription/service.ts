@@ -605,6 +605,37 @@ export const getSubscriptionById = (id: string): Promise<SubscriptionDocument | 
   return SubscriptionModel.findById(id).populate('user', 'name email');
 };
 
+export const getUserSubscriptionStatus = async (
+  userId: string
+): Promise<{
+  subscribed: boolean;
+  subscriptionStatus: 'free' | 'premium';
+  activeSubscription: SubscriptionDocument | null;
+}> => {
+  const user = await UserModel.findById(userId).select('subscriptionStatus');
+  if (!user) {
+    const error = new Error('User not found');
+    (error as any).statusCode = 404;
+    throw error;
+  }
+
+  const activeSubscription = await getUserActiveSubscription(userId);
+
+  if (user.subscriptionStatus !== 'premium' && activeSubscription) {
+    user.subscriptionStatus = 'premium';
+    await user.save();
+  } else if (user.subscriptionStatus !== 'free' && !activeSubscription) {
+    user.subscriptionStatus = 'free';
+    await user.save();
+  }
+
+  return {
+    subscribed: Boolean(activeSubscription),
+    subscriptionStatus: activeSubscription ? 'premium' : 'free',
+    activeSubscription
+  };
+};
+
 export const getUserActiveSubscription = async (userId: string): Promise<SubscriptionDocument | null> => {
   await expireLapsedSubscriptions();
   return SubscriptionModel.findOne({ user: userId, status: SUBSCRIPTION_STATUS.ACTIVE, expiryDate: { $gt: new Date() } });

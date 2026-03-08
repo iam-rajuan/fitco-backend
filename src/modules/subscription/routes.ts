@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   createCheckoutSession,
+  getMySubscriptionStatus,
   getSubscriptionDetails,
   getSubscriptionQuote,
   listPlans,
@@ -14,6 +15,7 @@ import { ROLES } from '../../utils/constants';
 const router = Router();
 
 router.get('/plans', authenticate, authorizeRoles(ROLES.USER), listPlans);
+router.get('/me/status', authenticate, authorizeRoles(ROLES.USER), getMySubscriptionStatus);
 router.post('/quote', authenticate, authorizeRoles(ROLES.USER), getSubscriptionQuote);
 router.post('/checkout-session', authenticate, authorizeRoles(ROLES.USER), createCheckoutSession);
 router.post('/', authenticate, authorizeRoles(ROLES.USER), createCheckoutSession);
