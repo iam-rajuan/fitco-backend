@@ -7,6 +7,7 @@ import {
   getUserDetails,
   listActivityLevels,
   listGoalOptions,
+  setMyDailyGoal,
   listUsers,
   setMyActivityLevel,
   setMyGoal,
@@ -28,6 +29,7 @@ router.get('/meta/activity-levels', authenticate, authorizeRoles(ROLES.USER), li
 router.get('/meta/goals', authenticate, authorizeRoles(ROLES.USER), listGoalOptions);
 router.post('/me/activity-level', authenticate, authorizeRoles(ROLES.USER), setMyActivityLevel);
 router.post('/me/goal', authenticate, authorizeRoles(ROLES.USER), setMyGoal);
+router.post('/me/daily-goal', authenticate, authorizeRoles(ROLES.USER), setMyDailyGoal);
 
 router.get('/', authenticate, authorizeRoles(ROLES.ADMIN), listUsers);
 router.get('/:id', authenticate, authorizeRoles(ROLES.ADMIN), getUserDetails);

@@ -41,6 +41,11 @@ const goalValidators = [
   body('goal').isIn(userService.GOAL_OPTIONS.map((item) => item.key))
 ];
 
+const dailyGoalValidators = [
+  allowOnlyFields(['calories']),
+  body('calories').isFloat({ gt: 0, max: 10000 })
+];
+
 const completeProfileValidators = [
   allowOnlyFields([
     'age',
@@ -204,6 +209,29 @@ export const upsertMyCompleteProfile = [
       message: 'Profile, health, activity level, and goal updated',
       activityLevelSelection,
       goalSelection,
+      user
+    });
+  })
+];
+
+export const setMyDailyGoal = [
+  ...dailyGoalValidators,
+  validate,
+  asyncHandler(async (req: Request, res: Response) => {
+    const user = await userService.setDailyGoal(req.auth!.id, { calories: Number(req.body.calories) });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      message: 'Daily goal updated',
+      dailyGoal: {
+        calories: user.dailyCalorieGoal,
+        protein: user.dailyProteinGoal,
+        carbs: user.dailyCarbGoal,
+        fat: user.dailyFatGoal,
+        macroRatio: { proteinPercent: 30, carbsPercent: 40, fatPercent: 30 }
+      },
       user
     });
   })

@@ -95,6 +95,20 @@ const getDayWindowUTC = (date: Date): { start: Date; end: Date } => {
 };
 
 const calculateDailyGoals = (user: UserDocument): DailyNutritionGoals => {
+  if (
+    user.dailyCalorieGoal &&
+    user.dailyProteinGoal !== undefined &&
+    user.dailyCarbGoal !== undefined &&
+    user.dailyFatGoal !== undefined
+  ) {
+    return {
+      calories: Number(user.dailyCalorieGoal),
+      protein: Number(user.dailyProteinGoal),
+      carbs: Number(user.dailyCarbGoal),
+      fat: Number(user.dailyFatGoal)
+    };
+  }
+
   const weight = Number(user.currentWeight ?? user.weight ?? 70);
   const height = Number(user.height ?? 170);
   const age = Number(user.age ?? 30);

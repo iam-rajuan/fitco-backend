@@ -51,6 +51,10 @@ interface HealthPayload {
   foodAllergies?: string;
 }
 
+interface DailyGoalPayload {
+  calories: number;
+}
+
 export const getUsers = async ({ page = 1, limit = 20, blocked }: ListParams): Promise<PaginatedResult<UserDocument>> => {
   const pageNumber = Number(page) || 1;
   const limitNumber = Number(limit) || 20;
@@ -116,4 +120,22 @@ export const updateHealthInfo = (id: string, payload: HealthPayload): Promise<Us
   if (payload.medicalConditions !== undefined) update.medicalConditions = payload.medicalConditions;
   if (payload.foodAllergies !== undefined) update.foodAllergies = payload.foodAllergies;
   return UserModel.findByIdAndUpdate(id, update, { new: true }).select('-password -refreshTokens');
+};
+
+export const setDailyGoal = (id: string, payload: DailyGoalPayload): Promise<UserDocument | null> => {
+  const calories = Number(payload.calories);
+  const protein = Number(((calories * 0.3) / 4).toFixed(1));
+  const carbs = Number(((calories * 0.4) / 4).toFixed(1));
+  const fat = Number(((calories * 0.3) / 9).toFixed(1));
+
+  return UserModel.findByIdAndUpdate(
+    id,
+    {
+      dailyCalorieGoal: calories,
+      dailyProteinGoal: protein,
+      dailyCarbGoal: carbs,
+      dailyFatGoal: fat
+    },
+    { new: true }
+  ).select('-password -refreshTokens');
 };
