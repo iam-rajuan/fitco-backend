@@ -3,14 +3,25 @@ import FoodDatabaseModel from '../foodDatabase/model';
 
 interface CreateCustomFoodPayload {
   barcode?: string;
+  foodName?: string;
+  brandName?: string;
+  servingSize?: string;
+  calories?: number | string;
+  protein?: number | string;
+  carbs?: number | string;
+  fat?: number;
+  fats?: number;
+}
+
+interface NormalizedCreateCustomFoodPayload {
+  barcode?: string;
   foodName: string;
   brandName: string;
   servingSize: string;
   calories: number;
   protein: number;
   carbs: number;
-  fat?: number;
-  fats?: number;
+  fat: number;
 }
 
 interface ScanBarcodeResponse {
@@ -38,20 +49,17 @@ const normalizeBarcode = (barcode?: string): string | undefined => {
   return normalized || undefined;
 };
 
-const normalizeCreatePayload = (payload: CreateCustomFoodPayload): Omit<CreateCustomFoodPayload, 'fats'> & { fat: number } => {
-  const resolvedFat = payload.fat ?? payload.fats;
-  if (resolvedFat === undefined) {
-    throw createHttpError('fat is required', 400);
-  }
+const normalizeCreatePayload = (payload: CreateCustomFoodPayload): NormalizedCreateCustomFoodPayload => {
+  const resolvedFat = payload.fat ?? payload.fats ?? 0;
 
   return {
     barcode: normalizeBarcode(payload.barcode),
     foodName: String(payload.foodName || '').trim(),
     brandName: String(payload.brandName || '').trim(),
     servingSize: String(payload.servingSize || '').trim(),
-    calories: Number(payload.calories),
-    protein: Number(payload.protein),
-    carbs: Number(payload.carbs),
+    calories: Number(payload.calories || 0),
+    protein: Number(payload.protein || 0),
+    carbs: Number(payload.carbs || 0),
     fat: Number(resolvedFat)
   };
 };
@@ -60,13 +68,13 @@ const mapCustomFoodToScanResponse = (food: CustomFoodDocument): ScanBarcodeRespo
   source: 'custom',
   id: food._id.toString(),
   barcode: food.barcode,
-  foodName: food.foodName,
-  brandName: food.brandName,
-  servingSize: food.servingSize,
-  calories: food.calories,
-  protein: food.protein,
-  carbs: food.carbs,
-  fat: food.fat
+  foodName: food.foodName || '',
+  brandName: food.brandName || '',
+  servingSize: food.servingSize || '',
+  calories: Number(food.calories || 0),
+  protein: Number(food.protein || 0),
+  carbs: Number(food.carbs || 0),
+  fat: Number(food.fat || 0)
 });
 
 const ensureUserBarcodeAvailable = async (userId: string, barcode?: string): Promise<void> => {

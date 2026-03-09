@@ -22,20 +22,14 @@ const allowOnlyFields = (allowedFields: string[]) =>
 const createCustomFoodValidators = [
   allowOnlyFields(['barcode', 'foodName', 'brandName', 'servingSize', 'calories', 'protein', 'carbs', 'fat', 'fats']),
   body('barcode').optional({ values: 'falsy' }).isString().trim().notEmpty(),
-  body('foodName').isString().trim().notEmpty(),
-  body('brandName').isString().trim().notEmpty(),
-  body('servingSize').isString().trim().notEmpty(),
-  body('calories').isFloat({ min: 0 }),
-  body('protein').isFloat({ min: 0 }),
-  body('carbs').isFloat({ min: 0 }),
-  body('fat').optional().isFloat({ min: 0 }),
-  body('fats').optional().isFloat({ min: 0 }),
-  body().custom((value) => {
-    if (value.fat === undefined && value.fats === undefined) {
-      throw new Error('fat (or fats) is required');
-    }
-    return true;
-  })
+  body('foodName').optional({ values: 'falsy' }).isString().trim(),
+  body('brandName').optional({ values: 'falsy' }).isString().trim(),
+  body('servingSize').optional({ values: 'falsy' }).isString().trim(),
+  body('calories').optional({ values: 'falsy' }).isFloat({ min: 0 }),
+  body('protein').optional({ values: 'falsy' }).isFloat({ min: 0 }),
+  body('carbs').optional({ values: 'falsy' }).isFloat({ min: 0 }),
+  body('fat').optional({ values: 'falsy' }).isFloat({ min: 0 }),
+  body('fats').optional({ values: 'falsy' }).isFloat({ min: 0 })
 ];
 
 export const createCustomFood = [

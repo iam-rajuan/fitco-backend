@@ -3,13 +3,13 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface CustomFoodDocument extends Document {
   user: mongoose.Types.ObjectId;
   barcode?: string;
-  foodName: string;
-  brandName: string;
-  servingSize: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
+  foodName?: string;
+  brandName?: string;
+  servingSize?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,13 +18,13 @@ const CustomFoodSchema = new Schema<CustomFoodDocument>(
   {
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     barcode: { type: String, trim: true },
-    foodName: { type: String, required: true, trim: true },
-    brandName: { type: String, required: true, trim: true },
-    servingSize: { type: String, required: true, trim: true },
-    calories: { type: Number, required: true, min: 0 },
-    protein: { type: Number, required: true, min: 0 },
-    carbs: { type: Number, required: true, min: 0 },
-    fat: { type: Number, required: true, min: 0 }
+    foodName: { type: String, trim: true, default: '' },
+    brandName: { type: String, trim: true, default: '' },
+    servingSize: { type: String, trim: true, default: '' },
+    calories: { type: Number, min: 0, default: 0 },
+    protein: { type: Number, min: 0, default: 0 },
+    carbs: { type: Number, min: 0, default: 0 },
+    fat: { type: Number, min: 0, default: 0 }
   },
   { timestamps: true }
 );

@@ -4,6 +4,7 @@ import ChatModel, { ChatDocument } from './model';
 import UserModel, { UserDocument } from '../user/model';
 import * as subscriptionService from '../subscription/service';
 import FoodLogModel from '../foodLog/model';
+import { getWeeklySummary, WeeklySummaryResponse } from '../foodLog/service';
 
 interface ChatResponse {
   answer: string;
@@ -36,6 +37,7 @@ interface NutritionContext {
   streak: {
     currentDays: number;
   };
+  weeklyProgress: WeeklySummaryResponse;
 }
 
 export interface ChatLimitStatus {
@@ -178,8 +180,11 @@ const getNutritionContext = async (userId: string, user: UserDocument): Promise<
   const now = new Date();
   const { start, end } = getDayWindowUTC(now);
   const todayDate = getDateKeyUTC(now);
+  const rollingWeekStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+  rollingWeekStart.setUTCDate(rollingWeekStart.getUTCDate() - 6);
+  const weeklyStartDate = getDateKeyUTC(rollingWeekStart);
 
-  const [totalsRow, mealsLoggedToday, recentLogs, streak] = await Promise.all([
+  const [totalsRow, mealsLoggedToday, recentLogs, streak, weeklyProgress] = await Promise.all([
     FoodLogModel.aggregate([
       {
         $match: {
@@ -202,7 +207,8 @@ const getNutritionContext = async (userId: string, user: UserDocument): Promise<
       loggedAt: { $gte: start, $lte: end }
     }),
     FoodLogModel.find({ user: user._id }).sort({ loggedAt: -1, _id: -1 }).limit(5),
-    getCurrentLoggingStreak(userId)
+    getCurrentLoggingStreak(userId),
+    getWeeklySummary(userId, weeklyStartDate)
   ]);
 
   const totals = totalsRow[0] || { calories: 0, protein: 0, carbs: 0, fat: 0 };
@@ -241,7 +247,8 @@ const getNutritionContext = async (userId: string, user: UserDocument): Promise<
     })),
     streak: {
       currentDays: streak
-    }
+    },
+    weeklyProgress
   };
 };
 

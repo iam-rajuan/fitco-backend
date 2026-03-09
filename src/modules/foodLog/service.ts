@@ -68,6 +68,12 @@ interface LogFoodListResponse {
   };
 }
 
+interface AggregateLogFoodListItem extends Omit<LogFoodListItem, 'servingSize' | 'servingUnit'> {
+  servingSize: number;
+  servingUnit: FoodServingUnit;
+  servingSizeText?: string;
+}
+
 interface FoodPreviewResponse {
   food: {
     id: string;
@@ -111,7 +117,7 @@ interface HomeDataResponse {
   };
 }
 
-interface WeeklySummaryResponse {
+export interface WeeklySummaryResponse {
   weekStart: string;
   weekEnd: string;
   goals: DailyGoalValues;
@@ -214,6 +220,35 @@ const parseDateInput = (dateValue?: string): Date => {
 
 const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const inputToObjectId = (value: string): mongoose.Types.ObjectId => new mongoose.Types.ObjectId(value);
+const CUSTOM_FOOD_SERVING_UNIT_ALIASES: Record<string, FoodServingUnit> = {
+  g: 'g',
+  gram: 'g',
+  grams: 'g',
+  ml: 'ml',
+  milliliter: 'ml',
+  milliliters: 'ml',
+  piece: 'piece',
+  pieces: 'piece',
+  pc: 'piece',
+  pcs: 'piece'
+};
+
+const parseCustomFoodServing = (value?: string): { servingSize: number; servingUnit: FoodServingUnit } => {
+  const normalizedValue = String(value || '').trim().toLowerCase();
+  const match = normalizedValue.match(/^(\d+(?:\.\d+)?)\s*([a-z]+)$/i);
+  if (!match) {
+    return { servingSize: 1, servingUnit: 'piece' };
+  }
+
+  const servingSize = Number(match[1]);
+  const servingUnit = CUSTOM_FOOD_SERVING_UNIT_ALIASES[match[2]];
+
+  if (!Number.isFinite(servingSize) || servingSize <= 0 || !servingUnit) {
+    return { servingSize: 1, servingUnit: 'piece' };
+  }
+
+  return { servingSize, servingUnit };
+};
 
 interface FoodSelectionDetails {
   foodId: string;
@@ -261,17 +296,19 @@ const loadSelectedFood = async (userId: string, input: FoodLogInput): Promise<Fo
 
   const customFood = await CustomFoodModel.findOne(customFoodQuery);
   if (customFood) {
+    const parsedServing = parseCustomFoodServing(customFood.servingSize);
+
     return {
       foodId: customFood._id.toString(),
       foodSource: FOOD_LOG_SOURCES[1],
-      foodName: customFood.foodName,
-      brandName: customFood.brandName,
-      baseServingSize: 1,
-      baseServingUnit: 'piece',
-      calories: customFood.calories,
-      protein: customFood.protein,
-      carbs: customFood.carbs,
-      fat: customFood.fat
+      foodName: customFood.foodName || '',
+      brandName: customFood.brandName || '',
+      baseServingSize: parsedServing.servingSize,
+      baseServingUnit: parsedServing.servingUnit,
+      calories: Number(customFood.calories || 0),
+      protein: Number(customFood.protein || 0),
+      carbs: Number(customFood.carbs || 0),
+      fat: Number(customFood.fat || 0)
     };
   }
 
@@ -517,6 +554,7 @@ export const listLogFoods = async ({ userId, page = 1, limit = 20, search = '' }
               source: { $literal: 'custom' },
               foodName: '$foodName',
               brandName: '$brandName',
+              servingSizeText: '$servingSize',
               servingSize: { $literal: 1 },
               servingUnit: { $literal: 'piece' },
               calories: '$calories',
@@ -543,9 +581,24 @@ export const listLogFoods = async ({ userId, page = 1, limit = 20, search = '' }
   ]);
 
   const total = Number(countRows[0]?.total || 0);
+  const normalizedData: LogFoodListItem[] = (data as AggregateLogFoodListItem[]).map((item) => {
+    if (item.source !== 'custom') {
+      const { servingSizeText: _servingSizeText, ...normalizedItem } = item;
+      return normalizedItem;
+    }
+
+    const parsedServing = parseCustomFoodServing(item.servingSizeText);
+    const { servingSizeText: _servingSizeText, ...rest } = item;
+
+    return {
+      ...rest,
+      servingSize: parsedServing.servingSize,
+      servingUnit: parsedServing.servingUnit
+    };
+  });
 
   return {
-    data,
+    data: normalizedData,
     pagination: {
       total,
       page: pageNumber,
