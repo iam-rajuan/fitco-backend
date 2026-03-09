@@ -4,7 +4,7 @@ export const FOOD_SERVING_UNITS = ['g', 'ml', 'piece'] as const;
 export type FoodServingUnit = (typeof FOOD_SERVING_UNITS)[number];
 
 export interface FoodDatabaseDocument extends Document {
-  brand: string;
+  brand?: string;
   product: string;
   servingSize: number;
   servingUnit: FoodServingUnit;
@@ -19,7 +19,7 @@ export interface FoodDatabaseDocument extends Document {
 
 const FoodDatabaseSchema = new Schema<FoodDatabaseDocument>(
   {
-    brand: { type: String, required: true, trim: true, index: true },
+    brand: { type: String, trim: true, index: true, default: '' },
     product: { type: String, required: true, trim: true, index: true },
     servingSize: { type: Number, required: true, min: 0.01 },
     servingUnit: { type: String, enum: FOOD_SERVING_UNITS, required: true, default: 'g' },

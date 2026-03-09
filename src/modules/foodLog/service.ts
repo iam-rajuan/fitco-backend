@@ -277,7 +277,7 @@ const loadSelectedFood = async (userId: string, input: FoodLogInput): Promise<Fo
       foodId: databaseFood._id.toString(),
       foodSource: FOOD_LOG_SOURCES[0],
       foodName: databaseFood.product,
-      brandName: databaseFood.brand,
+      brandName: databaseFood.brand || '',
       baseServingSize: databaseFood.servingSize,
       baseServingUnit: databaseFood.servingUnit,
       calories: databaseFood.calories,

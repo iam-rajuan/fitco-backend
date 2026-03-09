@@ -132,7 +132,7 @@ export const scanFoodByBarcode = async (userId: string, barcode: string): Promis
     id: dbFood._id.toString(),
     barcode: dbFood.barcode,
     foodName: dbFood.product,
-    brandName: dbFood.brand,
+    brandName: dbFood.brand || '',
     servingSize: `${dbFood.servingSize}${dbFood.servingUnit}`,
     calories: dbFood.calories,
     protein: dbFood.protein,

@@ -23,7 +23,7 @@ export interface PaginatedFoodResult {
 }
 
 export interface FoodPayload {
-  brand: string;
+  brand?: string;
   product: string;
   servingSize: number;
   servingUnit: FoodServingUnit;

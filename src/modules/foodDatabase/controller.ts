@@ -20,7 +20,7 @@ const allowOnlyFields = (allowedFields: string[]) =>
 
 const createValidators = [
   allowOnlyFields(['brand', 'product', 'servingSize', 'servingUnit', 'calories', 'protein', 'carbs', 'fat', 'barcode']),
-  body('brand').isString().trim().notEmpty(),
+  body('brand').optional({ values: 'falsy' }).isString().trim(),
   body('product').isString().trim().notEmpty(),
   body('servingSize').isFloat({ gt: 0 }),
   body('servingUnit').isIn(FOOD_SERVING_UNITS as unknown as string[]),
@@ -44,7 +44,7 @@ const updateValidators = [
     }
     return true;
   }),
-  body('brand').optional().isString().trim().notEmpty(),
+  body('brand').optional({ values: 'falsy' }).isString().trim(),
   body('product').optional().isString().trim().notEmpty(),
   body('servingSize').optional().isFloat({ gt: 0 }),
   body('servingUnit').optional().isIn(FOOD_SERVING_UNITS as unknown as string[]),
