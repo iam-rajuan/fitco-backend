@@ -459,7 +459,7 @@ export const createFoodLog = async (userId: string, input: FoodLogInput): Promis
     food: preview.food.id,
     foodSource: preview.food.source,
     foodName: preview.food.name,
-    brandName: preview.food.brandName,
+    brandName: preview.food.brandName || '',
     meal: preview.selection.meal,
     servings: preview.selection.servings,
     servingSize: preview.selection.servingSize,
