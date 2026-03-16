@@ -30,7 +30,7 @@ export interface AppConfig {
 
 const config: AppConfig = {
   env: process.env.NODE_ENV || '',
-  port: Number(process.env.PORT),
+  port: Number(process.env.PORT || 5000),
   mongoUri: process.env.MONGO_URI || '',
   jwt: {
     accessSecret: process.env.JWT_SECRET || 'changemeaccess',
