@@ -44,8 +44,11 @@ export interface ChatLimitStatus {
   subscriptionStatus: 'free' | 'premium';
   isUnlimited: boolean;
   dailyFreeLimit: number;
+  paidMonthlyLimit: number;
   messagesUsedToday: number;
   messagesLeftToday: number | null;
+  messagesUsedThisMonth: number;
+  messagesLeftThisMonth: number | null;
 }
 
 const ACTIVITY_MULTIPLIERS: Record<string, number> = {
@@ -93,6 +96,12 @@ const getDateKeyUTC = (date: Date): string => date.toISOString().slice(0, 10);
 const getDayWindowUTC = (date: Date): { start: Date; end: Date } => {
   const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
   const end = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
+  return { start, end };
+};
+
+const getMonthWindowUTC = (date: Date): { start: Date; end: Date } => {
+  const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1, 0, 0, 0, 0));
+  const end = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0, 23, 59, 59, 999));
   return { start, end };
 };
 
@@ -265,17 +274,25 @@ export const getChatLimitStatus = async (userId: string): Promise<ChatLimitStatu
   const subscriptionStatus: 'free' | 'premium' = isPremium ? 'premium' : 'free';
   await UserModel.findByIdAndUpdate(userId, { subscriptionStatus });
 
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  const messagesUsedToday = await ChatModel.countDocuments({ user: userId, createdAt: { $gte: startOfDay } });
+  const now = new Date();
+  const { start: startOfDay } = getDayWindowUTC(now);
+  const { start: startOfMonth } = getMonthWindowUTC(now);
+  const [messagesUsedToday, messagesUsedThisMonth] = await Promise.all([
+    ChatModel.countDocuments({ user: userId, createdAt: { $gte: startOfDay } }),
+    ChatModel.countDocuments({ user: userId, createdAt: { $gte: startOfMonth } })
+  ]);
   const messagesLeftToday = isPremium ? null : Math.max(config.chat.freeLimit - messagesUsedToday, 0);
+  const messagesLeftThisMonth = isPremium ? Math.max(config.chat.paidMonthlyLimit - messagesUsedThisMonth, 0) : null;
 
   return {
     subscriptionStatus,
-    isUnlimited: isPremium,
+    isUnlimited: false,
     dailyFreeLimit: config.chat.freeLimit,
+    paidMonthlyLimit: config.chat.paidMonthlyLimit,
     messagesUsedToday,
-    messagesLeftToday
+    messagesLeftToday,
+    messagesUsedThisMonth,
+    messagesLeftThisMonth
   };
 };
 
@@ -297,12 +314,21 @@ export const sendMessage = async (userId: string, prompt: string): Promise<ChatR
   await UserModel.findByIdAndUpdate(userId, { subscriptionStatus: isPremium ? 'premium' : 'free' });
   const nutritionContext = await getNutritionContext(userId, user);
 
+  const now = new Date();
+
   if (!isPremium) {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    const { start: startOfDay } = getDayWindowUTC(now);
     const messagesToday = await ChatModel.countDocuments({ user: userId, createdAt: { $gte: startOfDay } });
     if (messagesToday >= config.chat.freeLimit) {
       const error = new Error('Daily chat limit reached. Upgrade to premium for unlimited access.');
+      (error as any).statusCode = 403;
+      throw error;
+    }
+  } else {
+    const { start: startOfMonth } = getMonthWindowUTC(now);
+    const messagesThisMonth = await ChatModel.countDocuments({ user: userId, createdAt: { $gte: startOfMonth } });
+    if (messagesThisMonth >= config.chat.paidMonthlyLimit) {
+      const error = new Error('Monthly limit reached.');
       (error as any).statusCode = 403;
       throw error;
     }

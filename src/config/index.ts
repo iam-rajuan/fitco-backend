@@ -16,6 +16,7 @@ export interface AppConfig {
   jwt: JwtConfig;
   chat: {
     freeLimit: number;
+    paidMonthlyLimit: number;
   };
   stripe: {
     secretKey: string;
@@ -39,7 +40,8 @@ const config: AppConfig = {
     refreshExpiresIn: '7d'
   },
   chat: {
-    freeLimit: 2
+    freeLimit: 2,
+    paidMonthlyLimit: Number(process.env.PAID_CHAT_MONTHLY_LIMIT || 1000)
   },
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY || '',
