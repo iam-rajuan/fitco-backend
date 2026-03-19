@@ -66,7 +66,7 @@ Typical production mapping:
 
 Use:
 
-- [deploy/nginx/fitco.conf.example](/D:/RAJUAN-PERSONAL/VSCODE/fitco/deploy/nginx/fitco.conf.example)
+- [deploy/nginx/default.conf](/home/ubuntu/fitco/deploy/nginx/default.conf)
 
 ## Daily Deploy Commands
 
