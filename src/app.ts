@@ -50,6 +50,7 @@ app.get(`${API_PREFIX}/subscriptions/cancel`, (_req, res) => {
 app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/users`, userRoutes);
 app.use(`${API_PREFIX}/admin`, adminRoutes);
+app.use(`${API_PREFIX}/subscription`, subscriptionRoutes);
 app.use(`${API_PREFIX}/subscriptions`, subscriptionRoutes);
 app.use(`${API_PREFIX}/coupons`, couponRoutes);
 app.use(`${API_PREFIX}/chat`, chatRoutes);

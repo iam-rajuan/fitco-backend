@@ -1,13 +1,18 @@
 import { Router } from 'express';
 import {
+  appleWebhook,
   createCheckoutSession,
+  getSubscriptionStatus,
   getMySubscriptionStatus,
   getSubscriptionDetails,
   getSubscriptionQuote,
+  googleWebhook,
   listPlans,
   listSubscriptions,
   updateSubscriptionStatus,
-  updateUserSubscriptionStatus
+  updateUserSubscriptionStatus,
+  verifyApplePurchase,
+  verifyGooglePurchase
 } from './controller';
 import { authenticate, authorizeRoles } from '../../middlewares/authMiddleware';
 import { ROLES } from '../../utils/constants';
@@ -15,6 +20,11 @@ import { ROLES } from '../../utils/constants';
 const router = Router();
 
 router.get('/plans', authenticate, authorizeRoles(ROLES.USER), listPlans);
+router.post('/apple/verify', authenticate, authorizeRoles(ROLES.USER), verifyApplePurchase);
+router.post('/google/verify', authenticate, authorizeRoles(ROLES.USER), verifyGooglePurchase);
+router.get('/status', authenticate, authorizeRoles(ROLES.USER), getSubscriptionStatus);
+router.post('/apple/webhook', appleWebhook);
+router.post('/google/webhook', googleWebhook);
 router.get('/me/status', authenticate, authorizeRoles(ROLES.USER), getMySubscriptionStatus);
 router.post('/quote', authenticate, authorizeRoles(ROLES.USER), getSubscriptionQuote);
 router.post('/checkout-session', authenticate, authorizeRoles(ROLES.USER), createCheckoutSession);

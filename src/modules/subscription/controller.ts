@@ -12,6 +12,8 @@ const quoteValidators = [
 ];
 
 const checkoutValidators = [...quoteValidators];
+const appleVerifyValidators = [body('transactionId').isString().notEmpty()];
+const googleVerifyValidators = [body('purchaseToken').isString().notEmpty()];
 
 export const listPlans = asyncHandler(async (_req: Request, res: Response) => {
   const plans = await subscriptionService.getPlans();
@@ -50,6 +52,45 @@ export const stripeWebhook = asyncHandler(async (req: Request, res: Response) =>
   }
   await subscriptionService.processStripeWebhook(req.body as Buffer, signature);
   res.json({ received: true });
+});
+
+export const verifyApplePurchase = [
+  ...appleVerifyValidators,
+  validate,
+  asyncHandler(async (req: Request, res: Response) => {
+    const result = await subscriptionService.verifyAppleSubscription({
+      userId: req.auth!.id,
+      transactionId: req.body.transactionId
+    });
+    res.json(result);
+  })
+];
+
+export const verifyGooglePurchase = [
+  ...googleVerifyValidators,
+  validate,
+  asyncHandler(async (req: Request, res: Response) => {
+    const result = await subscriptionService.verifyGoogleSubscription({
+      userId: req.auth!.id,
+      purchaseToken: req.body.purchaseToken
+    });
+    res.json(result);
+  })
+];
+
+export const getSubscriptionStatus = asyncHandler(async (req: Request, res: Response) => {
+  const data = await subscriptionService.getUserSubscriptionStatus(req.auth!.id);
+  res.json(data);
+});
+
+export const appleWebhook = asyncHandler(async (req: Request, res: Response) => {
+  const result = await subscriptionService.processAppleWebhook(req.body as Record<string, unknown>);
+  res.json(result);
+});
+
+export const googleWebhook = asyncHandler(async (req: Request, res: Response) => {
+  const result = await subscriptionService.processGoogleWebhook(req.body as Record<string, unknown>);
+  res.json(result);
 });
 
 export const listSubscriptions = asyncHandler(async (req: Request, res: Response) => {

@@ -7,6 +7,16 @@ import TransactionModel from './transaction.model';
 import UserModel from '../user/model';
 import * as couponService from '../coupon/service';
 import { PLAN_TYPES, SUBSCRIPTION_STATUS, PlanType, SubscriptionStatus } from '../../utils/constants';
+import {
+  AppleVerifiedSubscription,
+  parseAppleWebhookPayload,
+  verifyAppleTransaction
+} from './apple.service';
+import {
+  GoogleVerifiedSubscription,
+  parseGoogleWebhookPayload,
+  verifyGooglePurchase
+} from './google.service';
 
 interface PaginationMeta {
   total: number;
@@ -72,6 +82,27 @@ interface PricingSettingsResponse {
 }
 
 type ManualSubscriptionStatus = 'paid' | 'free';
+type SubscriptionPlatform = 'stripe' | 'apple' | 'google';
+
+interface NormalizedSubscriptionResult {
+  subscription: SubscriptionDocument;
+  normalized: {
+    userId: string;
+    platform: Exclude<SubscriptionPlatform, 'stripe'>;
+    productId: string;
+    transactionId?: string;
+    purchaseToken?: string;
+    expiryDate: Date;
+    status: SubscriptionStatus;
+    isActive: boolean;
+  };
+}
+
+const createHttpError = (message: string, statusCode: number): Error & { statusCode: number } => {
+  const error = new Error(message) as Error & { statusCode: number };
+  error.statusCode = statusCode;
+  return error;
+};
 
 const centsToAmount = (value: number): number => Number((value / 100).toFixed(2));
 
@@ -104,6 +135,38 @@ const calculateExpiryByPlan = (planType: PlanType): Date => {
   }
   now.setMonth(now.getMonth() + 1);
   return now;
+};
+
+const resolvePlanTypeForProduct = (
+  productId: string,
+  platform: Exclude<SubscriptionPlatform, 'stripe'>
+): PlanType => {
+  const productIdSets =
+    platform === 'apple'
+      ? {
+          monthly: config.apple.monthlyProductIds,
+          yearly: config.apple.yearlyProductIds
+        }
+      : {
+          monthly: config.google.monthlyProductIds,
+          yearly: config.google.yearlyProductIds
+        };
+
+  if (productIdSets.monthly.includes(productId)) {
+    return PLAN_TYPES.MONTHLY;
+  }
+  if (productIdSets.yearly.includes(productId)) {
+    return PLAN_TYPES.YEARLY;
+  }
+
+  throw createHttpError(`Unsupported ${platform} subscription product: ${productId}`, 400);
+};
+
+const toExpiryStatus = (expiryDate: Date, revokedAt?: Date | null): SubscriptionStatus => {
+  if (revokedAt || expiryDate <= new Date()) {
+    return SUBSCRIPTION_STATUS.EXPIRED;
+  }
+  return SUBSCRIPTION_STATUS.ACTIVE;
 };
 
 const ensureValidPlanType = (planType: PlanType): void => {
@@ -139,7 +202,7 @@ const getPricingContext = async (): Promise<PricingContext> => {
 const expireLapsedSubscriptions = async (): Promise<void> => {
   await SubscriptionModel.updateMany(
     { expiryDate: { $lt: new Date() }, status: SUBSCRIPTION_STATUS.ACTIVE },
-    { status: SUBSCRIPTION_STATUS.EXPIRED }
+    { status: SUBSCRIPTION_STATUS.EXPIRED, isActive: false }
   );
 };
 
@@ -244,6 +307,7 @@ const syncUserSubscriptionStatus = async (userId: string): Promise<void> => {
   const active = await SubscriptionModel.exists({
     user: userId,
     status: SUBSCRIPTION_STATUS.ACTIVE,
+    isActive: true,
     expiryDate: { $gt: new Date() }
   });
   await UserModel.findByIdAndUpdate(userId, { subscriptionStatus: active ? 'premium' : 'free' });
@@ -262,9 +326,11 @@ const upsertLocalSubscription = async (params: {
 }): Promise<SubscriptionDocument> => {
   const payload = {
     user: params.userId,
+    platform: 'stripe' as const,
     planType: params.planType,
     price: params.price,
     expiryDate: params.expiryDate,
+    isActive: (params.status || SUBSCRIPTION_STATUS.ACTIVE) === SUBSCRIPTION_STATUS.ACTIVE,
     couponCode: params.couponCode,
     stripeCustomerId: params.stripeCustomerId,
     stripeSubscriptionId: params.stripeSubscriptionId,
@@ -279,6 +345,57 @@ const upsertLocalSubscription = async (params: {
       { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
     return updated;
+  }
+
+  return SubscriptionModel.create(payload);
+};
+
+const upsertExternalSubscription = async (params: {
+  userId: string;
+  platform: Exclude<SubscriptionPlatform, 'stripe'>;
+  productId: string;
+  planType: PlanType;
+  expiryDate: Date;
+  transactionId?: string;
+  purchaseToken?: string;
+  providerSubscriptionId?: string;
+  providerPayload: Record<string, unknown>;
+}): Promise<SubscriptionDocument> => {
+  const status = toExpiryStatus(params.expiryDate);
+  const identifiers = [
+    ...(params.transactionId ? [{ transactionId: params.transactionId }] : []),
+    ...(params.purchaseToken ? [{ purchaseToken: params.purchaseToken }] : []),
+    ...(params.providerSubscriptionId ? [{ providerSubscriptionId: params.providerSubscriptionId }] : [])
+  ];
+
+  if (!identifiers.length) {
+    throw createHttpError(`Missing ${params.platform} subscription identifier`, 400);
+  }
+
+  const payload = {
+    user: params.userId,
+    platform: params.platform,
+    productId: params.productId,
+    planType: params.planType,
+    price: 0,
+    expiryDate: params.expiryDate,
+    status,
+    isActive: status === SUBSCRIPTION_STATUS.ACTIVE,
+    transactionId: params.transactionId,
+    purchaseToken: params.purchaseToken,
+    providerSubscriptionId: params.providerSubscriptionId,
+    providerPayload: params.providerPayload
+  };
+
+  const existing = await SubscriptionModel.findOne({
+    platform: params.platform,
+    $or: identifiers
+  });
+
+  if (existing) {
+    Object.assign(existing, payload);
+    await existing.save();
+    return existing;
   }
 
   return SubscriptionModel.create(payload);
@@ -456,6 +573,7 @@ const handleSubscriptionStateChanged = async (subscription: Stripe.Subscription)
 
   local.status = nextStatus;
   local.expiryDate = nextExpiry;
+  local.isActive = nextStatus === SUBSCRIPTION_STATUS.ACTIVE && nextExpiry > new Date();
   await local.save();
   await syncUserSubscriptionStatus(local.user.toString());
 };
@@ -582,6 +700,162 @@ export const processStripeWebhook = async (payload: Buffer, signature: string): 
   return event;
 };
 
+const normalizeAppleSubscription = async (
+  userId: string,
+  verified: AppleVerifiedSubscription
+): Promise<NormalizedSubscriptionResult> => {
+  const planType = resolvePlanTypeForProduct(verified.productId, 'apple');
+  const subscription = await upsertExternalSubscription({
+    userId,
+    platform: 'apple',
+    productId: verified.productId,
+    planType,
+    expiryDate: verified.expiryDate,
+    transactionId: verified.transactionId,
+    providerSubscriptionId: verified.originalTransactionId,
+    providerPayload: {
+      originalTransactionId: verified.originalTransactionId,
+      purchaseDate: verified.purchaseDate?.toISOString(),
+      revokedAt: verified.revokedAt?.toISOString(),
+      environment: verified.environment
+    }
+  });
+
+  await syncUserSubscriptionStatus(userId);
+
+  return {
+    subscription,
+    normalized: {
+      userId,
+      platform: 'apple',
+      productId: verified.productId,
+      transactionId: verified.transactionId,
+      expiryDate: verified.expiryDate,
+      status: subscription.status,
+      isActive: subscription.isActive
+    }
+  };
+};
+
+const normalizeGoogleSubscription = async (
+  userId: string,
+  verified: GoogleVerifiedSubscription
+): Promise<NormalizedSubscriptionResult> => {
+  const planType = resolvePlanTypeForProduct(verified.productId, 'google');
+  const subscription = await upsertExternalSubscription({
+    userId,
+    platform: 'google',
+    productId: verified.productId,
+    planType,
+    expiryDate: verified.expiryDate,
+    purchaseToken: verified.purchaseToken,
+    providerSubscriptionId: verified.providerSubscriptionId,
+    providerPayload: {
+      subscriptionState: verified.subscriptionState,
+      autoRenewing: verified.autoRenewing,
+      latestOrderId: verified.latestOrderId,
+      startDate: verified.startDate?.toISOString()
+    }
+  });
+
+  await syncUserSubscriptionStatus(userId);
+
+  return {
+    subscription,
+    normalized: {
+      userId,
+      platform: 'google',
+      productId: verified.productId,
+      purchaseToken: verified.purchaseToken,
+      expiryDate: verified.expiryDate,
+      status: subscription.status,
+      isActive: subscription.isActive
+    }
+  };
+};
+
+export const verifyAppleSubscription = async ({
+  userId,
+  transactionId
+}: {
+  userId: string;
+  transactionId: string;
+}): Promise<NormalizedSubscriptionResult> => {
+  const verified = await verifyAppleTransaction(transactionId);
+  return normalizeAppleSubscription(userId, verified);
+};
+
+export const verifyGoogleSubscription = async ({
+  userId,
+  purchaseToken
+}: {
+  userId: string;
+  purchaseToken: string;
+}): Promise<NormalizedSubscriptionResult> => {
+  const verified = await verifyGooglePurchase(purchaseToken);
+  return normalizeGoogleSubscription(userId, verified);
+};
+
+export const processAppleWebhook = async (
+  payload: Record<string, unknown>
+): Promise<{ notificationType?: string; subtype?: string; received: true }> => {
+  const parsed = parseAppleWebhookPayload(payload);
+  const verified = parsed.transaction;
+
+  if (!verified) {
+    throw createHttpError('Apple webhook did not contain transaction details', 400);
+  }
+
+  const existingSubscription = await SubscriptionModel.findOne({
+    platform: 'apple',
+    $or: [
+      { transactionId: verified.transactionId },
+      ...(verified.originalTransactionId ? [{ providerSubscriptionId: verified.originalTransactionId }] : [])
+    ]
+  });
+
+  if (!existingSubscription) {
+    throw createHttpError('Apple webhook subscription not found for transaction', 404);
+  }
+
+  await normalizeAppleSubscription(existingSubscription.user.toString(), verified);
+
+  return {
+    notificationType: parsed.notificationType,
+    subtype: parsed.subtype,
+    received: true
+  };
+};
+
+export const processGoogleWebhook = async (
+  payload: Record<string, unknown>
+): Promise<{ notificationType?: number; received: true }> => {
+  const parsed = parseGoogleWebhookPayload(payload);
+
+  if (parsed.packageName && parsed.packageName !== config.google.packageName) {
+    throw createHttpError('Google webhook package name mismatch', 400);
+  }
+  if (!parsed.purchaseToken) {
+    throw createHttpError('Google webhook did not contain a purchase token', 400);
+  }
+
+  const existingSubscription = await SubscriptionModel.findOne({
+    platform: 'google',
+    purchaseToken: parsed.purchaseToken
+  });
+  if (!existingSubscription) {
+    throw createHttpError('Google webhook subscription not found for purchase token', 404);
+  }
+
+  const verified = await verifyGooglePurchase(parsed.purchaseToken);
+  await normalizeGoogleSubscription(existingSubscription.user.toString(), verified);
+
+  return {
+    notificationType: parsed.notificationType,
+    received: true
+  };
+};
+
 export const listSubscriptions = async ({ page = 1, limit = 20 }: ListParams): Promise<PaginatedResult<SubscriptionDocument>> => {
   const pageNumber = Number(page) || 1;
   const limitNumber = Number(limit) || 20;
@@ -638,7 +912,12 @@ export const getUserSubscriptionStatus = async (
 
 export const getUserActiveSubscription = async (userId: string): Promise<SubscriptionDocument | null> => {
   await expireLapsedSubscriptions();
-  return SubscriptionModel.findOne({ user: userId, status: SUBSCRIPTION_STATUS.ACTIVE, expiryDate: { $gt: new Date() } });
+  return SubscriptionModel.findOne({
+    user: userId,
+    status: SUBSCRIPTION_STATUS.ACTIVE,
+    isActive: true,
+    expiryDate: { $gt: new Date() }
+  }).sort({ expiryDate: -1 });
 };
 
 export const expireSubscription = (id: string): Promise<SubscriptionDocument | null> => {
@@ -662,9 +941,11 @@ export const updateSubscriptionStatus = async ({
   if (status === 'paid') {
     subscription.status = SUBSCRIPTION_STATUS.ACTIVE;
     subscription.expiryDate = calculateExpiryByPlan(subscription.planType);
+    subscription.isActive = true;
   } else {
     subscription.status = SUBSCRIPTION_STATUS.EXPIRED;
     subscription.expiryDate = new Date();
+    subscription.isActive = false;
   }
 
   await subscription.save();
@@ -694,14 +975,17 @@ export const updateUserSubscriptionStatus = async ({
       planType: targetPlanType,
       price: centsToAmount(planPriceCents),
       expiryDate: calculateExpiryByPlan(targetPlanType),
-      status: status === 'paid' ? SUBSCRIPTION_STATUS.ACTIVE : SUBSCRIPTION_STATUS.EXPIRED
+      status: status === 'paid' ? SUBSCRIPTION_STATUS.ACTIVE : SUBSCRIPTION_STATUS.EXPIRED,
+      isActive: status === 'paid'
     });
   } else if (status === 'paid') {
     subscription.status = SUBSCRIPTION_STATUS.ACTIVE;
     subscription.expiryDate = calculateExpiryByPlan(subscription.planType);
+    subscription.isActive = true;
   } else {
     subscription.status = SUBSCRIPTION_STATUS.EXPIRED;
     subscription.expiryDate = new Date();
+    subscription.isActive = false;
   }
 
   await subscription.save();

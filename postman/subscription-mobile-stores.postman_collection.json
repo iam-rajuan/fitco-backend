@@ -1,0 +1,197 @@
+{
+  "info": {
+    "_postman_id": "3f9f2c4b-6a86-4a91-b1d0-5f6f8c9e1a12",
+    "name": "Fitco Subscription Mobile Stores",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Postman collection for Apple App Store and Google Play subscription verification, status, and webhook testing."
+  },
+  "item": [
+    {
+      "name": "Apple Verify",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transactionId\": \"{{appleTransactionId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/subscription/apple/verify",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{apiPrefix}}",
+            "subscription",
+            "apple",
+            "verify"
+          ]
+        },
+        "description": "Verify an Apple App Store subscription transaction and upsert the normalized subscription record for the authenticated user."
+      }
+    },
+    {
+      "name": "Google Verify",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"purchaseToken\": \"{{googlePurchaseToken}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/subscription/google/verify",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{apiPrefix}}",
+            "subscription",
+            "google",
+            "verify"
+          ]
+        },
+        "description": "Verify a Google Play subscription purchase token and upsert the normalized subscription record for the authenticated user."
+      }
+    },
+    {
+      "name": "Subscription Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/subscription/status",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{apiPrefix}}",
+            "subscription",
+            "status"
+          ]
+        },
+        "description": "Return the current authenticated user's subscription status and active subscription."
+      }
+    },
+    {
+      "name": "Apple Webhook",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"signedPayload\": \"REPLACE_WITH_APPLE_SERVER_NOTIFICATION_SIGNED_PAYLOAD\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/subscription/apple/webhook",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{apiPrefix}}",
+            "subscription",
+            "apple",
+            "webhook"
+          ]
+        },
+        "description": "Test Apple App Store Server Notifications V2 delivery."
+      }
+    },
+    {
+      "name": "Google Webhook",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": {\n    \"data\": \"REPLACE_WITH_BASE64_ENCODED_PUBSUB_MESSAGE\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/subscription/google/webhook",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{apiPrefix}}",
+            "subscription",
+            "google",
+            "webhook"
+          ]
+        },
+        "description": "Test Google Real-time Developer Notifications delivery through Pub/Sub push format."
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "apiPrefix",
+      "value": "/api/v1"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "appleTransactionId",
+      "value": ""
+    },
+    {
+      "key": "googlePurchaseToken",
+      "value": ""
+    }
+  ]
+}

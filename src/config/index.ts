@@ -27,6 +27,22 @@ export interface AppConfig {
     successUrl: string;
     cancelUrl: string;
   };
+  apple: {
+    issuerId: string;
+    keyId: string;
+    bundleId: string;
+    privateKey: string;
+    environment: 'sandbox' | 'production';
+    monthlyProductIds: string[];
+    yearlyProductIds: string[];
+  };
+  google: {
+    packageName: string;
+    serviceAccountEmail: string;
+    serviceAccountPrivateKey: string;
+    monthlyProductIds: string[];
+    yearlyProductIds: string[];
+  };
 }
 
 const config: AppConfig = {
@@ -51,6 +67,34 @@ const config: AppConfig = {
     yearlyPriceCents: Number(process.env.STRIPE_YEARLY_PRICE_CENTS || 9999),
     successUrl: process.env.STRIPE_SUCCESS_URL || '',
     cancelUrl: process.env.STRIPE_CANCEL_URL || ''
+  },
+  apple: {
+    issuerId: process.env.APPLE_ISSUER_ID || '',
+    keyId: process.env.APPLE_KEY_ID || '',
+    bundleId: process.env.APPLE_BUNDLE_ID || '',
+    privateKey: (process.env.APPLE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    environment: process.env.APPLE_ENVIRONMENT === 'production' ? 'production' : 'sandbox',
+    monthlyProductIds: (process.env.APPLE_MONTHLY_PRODUCT_IDS || '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean),
+    yearlyProductIds: (process.env.APPLE_YEARLY_PRODUCT_IDS || '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean)
+  },
+  google: {
+    packageName: process.env.GOOGLE_PACKAGE_NAME || '',
+    serviceAccountEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '',
+    serviceAccountPrivateKey: (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    monthlyProductIds: (process.env.GOOGLE_MONTHLY_PRODUCT_IDS || '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean),
+    yearlyProductIds: (process.env.GOOGLE_YEARLY_PRODUCT_IDS || '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean)
   }
 };
 
