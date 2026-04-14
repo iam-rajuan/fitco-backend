@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import FoodDatabaseModel, { FOOD_SERVING_UNITS, FoodDatabaseDocument, FoodServingUnit } from './model';
 import { parseFoodCsv } from './csv';
 
@@ -32,6 +33,7 @@ export interface FoodPayload {
   carbs: number;
   fat: number;
   barcode?: string;
+  createdByUser?: string;
 }
 
 export interface FoodCsvImportResult {
@@ -57,6 +59,7 @@ const normalizeBarcode = (barcode?: string): string | undefined => {
 
 const normalizePayload = (payload: FoodPayload): FoodPayload => {
   const servingUnit = FOOD_SERVING_UNITS.includes(payload.servingUnit) ? payload.servingUnit : 'g';
+  const createdByUser = payload.createdByUser && mongoose.isValidObjectId(payload.createdByUser) ? String(payload.createdByUser) : undefined;
 
   return {
     brand: String(payload.brand || '').trim(),
@@ -67,7 +70,8 @@ const normalizePayload = (payload: FoodPayload): FoodPayload => {
     protein: Number(payload.protein),
     carbs: Number(payload.carbs),
     fat: Number(payload.fat),
-    barcode: normalizeBarcode(payload.barcode)
+    barcode: normalizeBarcode(payload.barcode),
+    createdByUser
   };
 };
 
@@ -89,17 +93,22 @@ const ensureBarcodeAvailable = async (barcode?: string, excludeId?: string): Pro
 
   const existing = await FoodDatabaseModel.findOne({ barcode: normalizedBarcode }).select('_id');
   if (existing && existing._id.toString() !== excludeId) {
-    throw createHttpError('Barcode already exists', 409);
+    throw createHttpError('This barcode is already in use. Please use a unique barcode.', 409);
   }
 };
 
-const ensureBarcodeIndexAllowsDuplicates = async (): Promise<void> => {
+const ensureBarcodeIndexIsUnique = async (): Promise<void> => {
   const indexes = await FoodDatabaseModel.collection.indexes();
   const barcodeIndex = indexes.find((index) => index.name === 'barcode_1');
 
-  if (barcodeIndex?.unique) {
+  if (!barcodeIndex) {
+    await FoodDatabaseModel.collection.createIndex({ barcode: 1 }, { unique: true, sparse: true, name: 'barcode_1' });
+    return;
+  }
+
+  if (!barcodeIndex.unique) {
     await FoodDatabaseModel.collection.dropIndex('barcode_1');
-    await FoodDatabaseModel.collection.createIndex({ barcode: 1 }, { sparse: true, name: 'barcode_1' });
+    await FoodDatabaseModel.collection.createIndex({ barcode: 1 }, { unique: true, sparse: true, name: 'barcode_1' });
   }
 };
 
@@ -185,7 +194,7 @@ export const deleteFood = async (id: string): Promise<boolean> => {
 };
 
 export const importFoodsFromCsv = async (csvContent: string): Promise<FoodCsvImportResult> => {
-  await ensureBarcodeIndexAllowsDuplicates();
+  await ensureBarcodeIndexIsUnique();
   const parsedRows = parseFoodCsv(csvContent);
   const errors: Array<{ rowNumber: number; error: string; rawLine?: string }> = [];
   const normalizedRows: FoodPayload[] = [];
@@ -199,6 +208,7 @@ export const importFoodsFromCsv = async (csvContent: string): Promise<FoodCsvImp
     }
 
     const normalizedPayload = normalizePayload(row.data);
+    await ensureBarcodeAvailable(normalizedPayload.barcode);
     normalizedRows.push(normalizedPayload);
     await FoodDatabaseModel.create(normalizedPayload);
     importedCount += 1;

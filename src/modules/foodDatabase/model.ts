@@ -13,6 +13,7 @@ export interface FoodDatabaseDocument extends Document {
   carbs: number;
   fat: number;
   barcode?: string;
+  createdByUser?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,12 +28,14 @@ const FoodDatabaseSchema = new Schema<FoodDatabaseDocument>(
     protein: { type: Number, required: true, min: 0 },
     carbs: { type: Number, required: true, min: 0 },
     fat: { type: Number, required: true, min: 0 },
-    barcode: { type: String, trim: true, sparse: true, index: true }
+    barcode: { type: String, trim: true },
+    createdByUser: { type: Schema.Types.ObjectId, ref: 'User', index: true }
   },
   { timestamps: true }
 );
 
 FoodDatabaseSchema.index({ brand: 1, product: 1 });
+FoodDatabaseSchema.index({ barcode: 1 }, { unique: true, sparse: true });
 
 const FoodDatabaseModel = mongoose.model<FoodDatabaseDocument>('FoodDatabase', FoodDatabaseSchema);
 

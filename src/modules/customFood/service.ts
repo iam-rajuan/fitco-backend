@@ -1,5 +1,5 @@
-import CustomFoodModel, { CustomFoodDocument } from './model';
-import FoodDatabaseModel from '../foodDatabase/model';
+import FoodDatabaseModel, { FoodDatabaseDocument, FoodServingUnit } from '../foodDatabase/model';
+import * as foodDatabaseService from '../foodDatabase/service';
 
 interface CreateCustomFoodPayload {
   barcode?: string;
@@ -9,11 +9,12 @@ interface CreateCustomFoodPayload {
   calories?: number | string;
   protein?: number | string;
   carbs?: number | string;
-  fat?: number;
-  fats?: number;
+  fat?: number | string;
+  fats?: number | string;
 }
 
-interface NormalizedCreateCustomFoodPayload {
+interface CustomFoodListItem {
+  id: string;
   barcode?: string;
   foodName: string;
   brandName: string;
@@ -22,10 +23,12 @@ interface NormalizedCreateCustomFoodPayload {
   protein: number;
   carbs: number;
   fat: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface ScanBarcodeResponse {
-  source: 'custom' | 'database';
+  source: 'database';
   id: string;
   barcode?: string;
   foodName: string;
@@ -49,94 +52,108 @@ const normalizeBarcode = (barcode?: string): string | undefined => {
   return normalized || undefined;
 };
 
-const normalizeCreatePayload = (payload: CreateCustomFoodPayload): NormalizedCreateCustomFoodPayload => {
-  const resolvedFat = payload.fat ?? payload.fats ?? 0;
+const parseServingSize = (value?: string): { servingSize: number; servingUnit: FoodServingUnit } => {
+  const normalizedValue = String(value || '').trim().toLowerCase();
+  const match = normalizedValue.match(/^(\d+(?:\.\d+)?)\s*([a-z]+)$/i);
 
-  return {
-    barcode: normalizeBarcode(payload.barcode),
-    foodName: String(payload.foodName || '').trim(),
-    brandName: String(payload.brandName || '').trim(),
-    servingSize: String(payload.servingSize || '').trim(),
-    calories: Number(payload.calories || 0),
-    protein: Number(payload.protein || 0),
-    carbs: Number(payload.carbs || 0),
-    fat: Number(resolvedFat)
+  if (!match) {
+    throw createHttpError('servingSize must be like 100g, 250ml, or 1piece', 400);
+  }
+
+  const servingSize = Number(match[1]);
+  const unitAliases: Record<string, FoodServingUnit> = {
+    g: 'g',
+    gram: 'g',
+    grams: 'g',
+    ml: 'ml',
+    milliliter: 'ml',
+    milliliters: 'ml',
+    piece: 'piece',
+    pieces: 'piece',
+    pc: 'piece',
+    pcs: 'piece'
   };
+  const servingUnit = unitAliases[match[2]];
+
+  if (!Number.isFinite(servingSize) || servingSize <= 0 || !servingUnit) {
+    throw createHttpError('servingSize must be like 100g, 250ml, or 1piece', 400);
+  }
+
+  return { servingSize, servingUnit };
 };
 
-const mapCustomFoodToScanResponse = (food: CustomFoodDocument): ScanBarcodeResponse => ({
-  source: 'custom',
+const formatServingSize = (servingSize: number, servingUnit: FoodServingUnit): string => `${servingSize}${servingUnit}`;
+
+const mapFoodToCustomFood = (food: FoodDatabaseDocument): CustomFoodListItem => ({
   id: food._id.toString(),
   barcode: food.barcode,
-  foodName: food.foodName || '',
-  brandName: food.brandName || '',
-  servingSize: food.servingSize || '',
+  foodName: food.product,
+  brandName: food.brand || '',
+  servingSize: formatServingSize(food.servingSize, food.servingUnit),
+  calories: Number(food.calories || 0),
+  protein: Number(food.protein || 0),
+  carbs: Number(food.carbs || 0),
+  fat: Number(food.fat || 0),
+  createdAt: food.createdAt,
+  updatedAt: food.updatedAt
+});
+
+const mapFoodToScanResponse = (food: FoodDatabaseDocument): ScanBarcodeResponse => ({
+  source: 'database',
+  id: food._id.toString(),
+  barcode: food.barcode,
+  foodName: food.product,
+  brandName: food.brand || '',
+  servingSize: formatServingSize(food.servingSize, food.servingUnit),
   calories: Number(food.calories || 0),
   protein: Number(food.protein || 0),
   carbs: Number(food.carbs || 0),
   fat: Number(food.fat || 0)
 });
 
-const ensureUserBarcodeAvailable = async (userId: string, barcode?: string): Promise<void> => {
-  const normalizedBarcode = normalizeBarcode(barcode);
-  if (!normalizedBarcode) {
-    return;
-  }
+export const createCustomFood = async (userId: string, payload: CreateCustomFoodPayload): Promise<CustomFoodListItem> => {
+  const serving = parseServingSize(payload.servingSize);
+  const resolvedFat = payload.fat ?? payload.fats ?? 0;
 
-  const existing = await CustomFoodModel.findOne({ user: userId, barcode: normalizedBarcode }).select('_id');
-  if (existing) {
-    throw createHttpError('This barcode already exists in your custom foods', 409);
-  }
-};
-
-export const createCustomFood = async (userId: string, payload: CreateCustomFoodPayload): Promise<CustomFoodDocument> => {
-  const normalizedPayload = normalizeCreatePayload(payload);
-  await ensureUserBarcodeAvailable(userId, normalizedPayload.barcode);
-
-  return CustomFoodModel.create({
-    user: userId,
-    ...normalizedPayload
+  const food = await foodDatabaseService.createFood({
+    createdByUser: userId,
+    barcode: normalizeBarcode(payload.barcode),
+    product: String(payload.foodName || '').trim(),
+    brand: String(payload.brandName || '').trim(),
+    servingSize: serving.servingSize,
+    servingUnit: serving.servingUnit,
+    calories: Number(payload.calories || 0),
+    protein: Number(payload.protein || 0),
+    carbs: Number(payload.carbs || 0),
+    fat: Number(resolvedFat)
   });
+
+  return mapFoodToCustomFood(food);
 };
 
-export const listCustomFoods = async ({ userId, search = '' }: ListCustomFoodParams): Promise<CustomFoodDocument[]> => {
+export const listCustomFoods = async ({ userId, search = '' }: ListCustomFoodParams): Promise<CustomFoodListItem[]> => {
   const normalizedSearch = String(search).trim();
-  const query: Record<string, unknown> = { user: userId };
+  const query: Record<string, unknown> = { createdByUser: userId };
 
   if (normalizedSearch) {
     const regex = new RegExp(normalizedSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-    query.$or = [{ foodName: regex }, { brandName: regex }, { barcode: regex }];
+    query.$or = [{ product: regex }, { brand: regex }, { barcode: regex }];
   }
 
-  return CustomFoodModel.find(query).sort({ createdAt: -1, _id: -1 });
+  const foods = await FoodDatabaseModel.find(query).sort({ createdAt: -1, _id: -1 });
+  return foods.map(mapFoodToCustomFood);
 };
 
-export const scanFoodByBarcode = async (userId: string, barcode: string): Promise<ScanBarcodeResponse> => {
+export const scanFoodByBarcode = async (_userId: string, barcode: string): Promise<ScanBarcodeResponse> => {
   const normalizedBarcode = normalizeBarcode(barcode);
   if (!normalizedBarcode) {
     throw createHttpError('Barcode is required', 400);
   }
 
-  const customFood = await CustomFoodModel.findOne({ user: userId, barcode: normalizedBarcode }).sort({ createdAt: -1, _id: -1 });
-  if (customFood) {
-    return mapCustomFoodToScanResponse(customFood);
-  }
-
-  const dbFood = await FoodDatabaseModel.findOne({ barcode: normalizedBarcode }).sort({ createdAt: -1, _id: -1 });
-  if (!dbFood) {
+  const food = await FoodDatabaseModel.findOne({ barcode: normalizedBarcode }).sort({ createdAt: -1, _id: -1 });
+  if (!food) {
     throw createHttpError('Food item not found for this barcode', 404);
   }
 
-  return {
-    source: 'database',
-    id: dbFood._id.toString(),
-    barcode: dbFood.barcode,
-    foodName: dbFood.product,
-    brandName: dbFood.brand || '',
-    servingSize: `${dbFood.servingSize}${dbFood.servingUnit}`,
-    calories: dbFood.calories,
-    protein: dbFood.protein,
-    carbs: dbFood.carbs,
-    fat: dbFood.fat
-  };
+  return mapFoodToScanResponse(food);
 };

@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import FoodDatabaseModel, { FoodServingUnit } from '../foodDatabase/model';
-import CustomFoodModel from '../customFood/model';
 import FoodLogModel, { FOOD_LOG_MEALS, FOOD_LOG_SOURCES, FoodLogDocument, FoodLogMeal, FoodLogSource } from './model';
 import UserModel, { UserDocument } from '../user/model';
 
@@ -71,7 +70,8 @@ interface LogFoodListResponse {
 interface AggregateLogFoodListItem extends Omit<LogFoodListItem, 'servingSize' | 'servingUnit'> {
   servingSize: number;
   servingUnit: FoodServingUnit;
-  servingSizeText?: string;
+  createdByUser?: string;
+  sortPriority?: number;
 }
 
 interface FoodPreviewResponse {
@@ -220,35 +220,6 @@ const parseDateInput = (dateValue?: string): Date => {
 
 const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const inputToObjectId = (value: string): mongoose.Types.ObjectId => new mongoose.Types.ObjectId(value);
-const CUSTOM_FOOD_SERVING_UNIT_ALIASES: Record<string, FoodServingUnit> = {
-  g: 'g',
-  gram: 'g',
-  grams: 'g',
-  ml: 'ml',
-  milliliter: 'ml',
-  milliliters: 'ml',
-  piece: 'piece',
-  pieces: 'piece',
-  pc: 'piece',
-  pcs: 'piece'
-};
-
-const parseCustomFoodServing = (value?: string): { servingSize: number; servingUnit: FoodServingUnit } => {
-  const normalizedValue = String(value || '').trim().toLowerCase();
-  const match = normalizedValue.match(/^(\d+(?:\.\d+)?)\s*([a-z]+)$/i);
-  if (!match) {
-    return { servingSize: 1, servingUnit: 'piece' };
-  }
-
-  const servingSize = Number(match[1]);
-  const servingUnit = CUSTOM_FOOD_SERVING_UNIT_ALIASES[match[2]];
-
-  if (!Number.isFinite(servingSize) || servingSize <= 0 || !servingUnit) {
-    return { servingSize: 1, servingUnit: 'piece' };
-  }
-
-  return { servingSize, servingUnit };
-};
 
 interface FoodSelectionDetails {
   foodId: string;
@@ -284,31 +255,6 @@ const loadSelectedFood = async (userId: string, input: FoodLogInput): Promise<Fo
       protein: databaseFood.protein,
       carbs: databaseFood.carbs,
       fat: databaseFood.fat
-    };
-  }
-
-  const customFoodQuery: Record<string, unknown> = { user: userId };
-  if (isObjectId) {
-    customFoodQuery.$or = [{ _id: foodRef }, { barcode: foodRef }];
-  } else {
-    customFoodQuery.barcode = foodRef;
-  }
-
-  const customFood = await CustomFoodModel.findOne(customFoodQuery);
-  if (customFood) {
-    const parsedServing = parseCustomFoodServing(customFood.servingSize);
-
-    return {
-      foodId: customFood._id.toString(),
-      foodSource: FOOD_LOG_SOURCES[1],
-      foodName: customFood.foodName || '',
-      brandName: customFood.brandName || '',
-      baseServingSize: parsedServing.servingSize,
-      baseServingUnit: parsedServing.servingUnit,
-      calories: Number(customFood.calories || 0),
-      protein: Number(customFood.protein || 0),
-      carbs: Number(customFood.carbs || 0),
-      fat: Number(customFood.fat || 0)
     };
   }
 
@@ -510,21 +456,22 @@ export const listLogFoods = async ({ userId, page = 1, limit = 20, search = '' }
   const skip = (pageNumber - 1) * limitNumber;
   const normalizedSearch = String(search).trim();
   const dbSearchRegex = normalizedSearch ? new RegExp(escapeRegex(normalizedSearch), 'i') : null;
+  const userObjectId = inputToObjectId(userId);
 
-  const databaseMatch = dbSearchRegex
+  const databaseMatch: Record<string, unknown> = dbSearchRegex
     ? {
         $or: [{ brand: dbSearchRegex }, { product: dbSearchRegex }, { barcode: dbSearchRegex }]
       }
     : {};
-
-  const customMatch: Record<string, unknown> = { user: inputToObjectId(userId) };
-  if (dbSearchRegex) {
-    customMatch.$or = [{ brandName: dbSearchRegex }, { foodName: dbSearchRegex }, { barcode: dbSearchRegex }];
-  }
-
-  const unionCollection = CustomFoodModel.collection.name;
   const basePipeline: any[] = [
     { $match: databaseMatch },
+    {
+      $addFields: {
+        sortPriority: {
+          $cond: [{ $eq: ['$createdByUser', userObjectId] }, 0, 1]
+        }
+      }
+    },
     {
       $project: {
         _id: 0,
@@ -539,33 +486,9 @@ export const listLogFoods = async ({ userId, page = 1, limit = 20, search = '' }
         carbs: '$carbs',
         fat: '$fat',
         barcode: '$barcode',
-        createdAt: '$createdAt'
-      }
-    },
-    {
-      $unionWith: {
-        coll: unionCollection,
-        pipeline: [
-          { $match: customMatch },
-          {
-            $project: {
-              _id: 0,
-              id: { $toString: '$_id' },
-              source: { $literal: 'custom' },
-              foodName: '$foodName',
-              brandName: '$brandName',
-              servingSizeText: '$servingSize',
-              servingSize: { $literal: 1 },
-              servingUnit: { $literal: 'piece' },
-              calories: '$calories',
-              protein: '$protein',
-              carbs: '$carbs',
-              fat: '$fat',
-              barcode: '$barcode',
-              createdAt: '$createdAt'
-            }
-          }
-        ]
+        createdAt: '$createdAt',
+        createdByUser: { $cond: [{ $ifNull: ['$createdByUser', false] }, { $toString: '$createdByUser' }, null] },
+        sortPriority: '$sortPriority'
       }
     }
   ];
@@ -573,7 +496,7 @@ export const listLogFoods = async ({ userId, page = 1, limit = 20, search = '' }
   const [data, countRows] = await Promise.all([
     FoodDatabaseModel.aggregate([
       ...basePipeline,
-      { $sort: { createdAt: -1, id: -1 } },
+      { $sort: { sortPriority: 1, createdAt: -1, id: -1 } },
       { $skip: skip },
       { $limit: limitNumber }
     ]),
@@ -582,19 +505,8 @@ export const listLogFoods = async ({ userId, page = 1, limit = 20, search = '' }
 
   const total = Number(countRows[0]?.total || 0);
   const normalizedData: LogFoodListItem[] = (data as AggregateLogFoodListItem[]).map((item) => {
-    if (item.source !== 'custom') {
-      const { servingSizeText: _servingSizeText, ...normalizedItem } = item;
-      return normalizedItem;
-    }
-
-    const parsedServing = parseCustomFoodServing(item.servingSizeText);
-    const { servingSizeText: _servingSizeText, ...rest } = item;
-
-    return {
-      ...rest,
-      servingSize: parsedServing.servingSize,
-      servingUnit: parsedServing.servingUnit
-    };
+    const { createdByUser: _createdByUser, sortPriority: _sortPriority, ...normalizedItem } = item;
+    return normalizedItem;
   });
 
   return {

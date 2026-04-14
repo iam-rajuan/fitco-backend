@@ -47,7 +47,7 @@
           "status": "OK",
           "code": 200,
           "_postman_previewlanguage": "json",
-          "body": "{\n  \"plans\": [\n    {\n      \"planType\": \"monthly\",\n      \"interval\": \"month\",\n      \"label\": \"Monthly Plan\",\n      \"prices\": {\n        \"admin\": {\n          \"amount\": 9.99,\n          \"amountCents\": 999,\n          \"currency\": \"usd\"\n        },\n        \"apple\": {\n          \"amount\": null,\n          \"currency\": null\n        },\n        \"google\": {\n          \"amount\": 9.99,\n          \"currency\": \"USD\"\n        }\n      }\n    }\n  ]\n}"
+          "body": "{\n  \"plans\": [\n    {\n      \"planType\": \"monthly\",\n      \"interval\": \"month\",\n      \"label\": \"Monthly Plan\",\n      \"prices\": {\n        \"admin\": {\n          \"amount\": 9.99,\n          \"amountCents\": 999,\n          \"currency\": \"usd\"\n        },\n        \"apple\": {\n          \"amount\": 6.99,\n          \"currency\": \"USD\"\n        },\n        \"google\": {\n          \"amount\": 7.99,\n          \"currency\": \"USD\"\n        }\n      }\n    },\n    {\n      \"planType\": \"yearly\",\n      \"interval\": \"year\",\n      \"label\": \"Yearly Plan\",\n      \"prices\": {\n        \"admin\": {\n          \"amount\": 99.99,\n          \"amountCents\": 9999,\n          \"currency\": \"usd\"\n        },\n        \"apple\": {\n          \"amount\": 34.99,\n          \"currency\": \"USD\"\n        },\n        \"google\": {\n          \"amount\": 39.99,\n          \"currency\": \"USD\"\n        }\n      }\n    }\n  ]\n}"
         }
       ]
     },
@@ -88,7 +88,28 @@
           ]
         },
         "description": "Call this after the iOS app completes the App Store purchase and gives you a transaction id."
-      }
+      },
+      "response": [
+        {
+          "name": "Sample Response",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/subscription/apple/verify"
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"subscription\": {\n    \"_id\": \"6800f1b8188a61d3563ce001\",\n    \"user\": \"67ff0ea77185b219a05f4001\",\n    \"platform\": \"apple\",\n    \"planType\": \"monthly\",\n    \"productId\": \"com.fitco.subscription.monthly\",\n    \"price\": 0,\n    \"expiryDate\": \"2026-05-15T00:00:00.000Z\",\n    \"status\": \"active\",\n    \"isActive\": true,\n    \"transactionId\": \"2000000900000001\",\n    \"providerSubscriptionId\": \"1000000900000001\",\n    \"providerPayload\": {\n      \"originalTransactionId\": \"1000000900000001\",\n      \"purchaseDate\": \"2026-04-15T08:00:00.000Z\",\n      \"environment\": \"Sandbox\"\n    },\n    \"startedAt\": \"2026-04-15T08:01:12.000Z\",\n    \"createdAt\": \"2026-04-15T08:01:12.000Z\",\n    \"updatedAt\": \"2026-04-15T08:01:12.000Z\"\n  },\n  \"normalized\": {\n    \"userId\": \"67ff0ea77185b219a05f4001\",\n    \"platform\": \"apple\",\n    \"productId\": \"com.fitco.subscription.monthly\",\n    \"transactionId\": \"2000000900000001\",\n    \"expiryDate\": \"2026-05-15T00:00:00.000Z\",\n    \"status\": \"active\",\n    \"isActive\": true\n  }\n}"
+        }
+      ]
     },
     {
       "name": "Google Verify",
@@ -127,7 +148,28 @@
           ]
         },
         "description": "Call this after the Android app completes the Google Play purchase and gives you a purchase token."
-      }
+      },
+      "response": [
+        {
+          "name": "Sample Response",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/subscription/google/verify"
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"subscription\": {\n    \"_id\": \"6800f1b8188a61d3563ce002\",\n    \"user\": \"67ff0ea77185b219a05f4001\",\n    \"platform\": \"google\",\n    \"planType\": \"yearly\",\n    \"productId\": \"com.fitco.subscription.monthly\",\n    \"price\": 0,\n    \"expiryDate\": \"2027-04-15T00:00:00.000Z\",\n    \"status\": \"active\",\n    \"isActive\": true,\n    \"purchaseToken\": \"gp_purchase_token_123456\",\n    \"providerSubscriptionId\": \"GPA.1234-5678-9012-34567\",\n    \"providerPayload\": {\n      \"basePlanId\": \"com-fitco-subscription-yearly\",\n      \"subscriptionState\": \"SUBSCRIPTION_STATE_ACTIVE\",\n      \"autoRenewing\": true,\n      \"latestOrderId\": \"GPA.1234-5678-9012-34567\",\n      \"startDate\": \"2026-04-15T08:00:00.000Z\",\n      \"regionCode\": \"US\"\n    },\n    \"startedAt\": \"2026-04-15T08:02:13.000Z\",\n    \"createdAt\": \"2026-04-15T08:02:13.000Z\",\n    \"updatedAt\": \"2026-04-15T08:02:13.000Z\"\n  },\n  \"normalized\": {\n    \"userId\": \"67ff0ea77185b219a05f4001\",\n    \"platform\": \"google\",\n    \"productId\": \"com.fitco.subscription.monthly\",\n    \"basePlanId\": \"com-fitco-subscription-yearly\",\n    \"purchaseToken\": \"gp_purchase_token_123456\",\n    \"expiryDate\": \"2027-04-15T00:00:00.000Z\",\n    \"status\": \"active\",\n    \"isActive\": true\n  }\n}"
+        }
+      ]
     },
     {
       "name": "Subscription Status",
@@ -156,7 +198,23 @@
           ]
         },
         "description": "Return the current authenticated user's subscription status and active subscription."
-      }
+      },
+      "response": [
+        {
+          "name": "Sample Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/subscription/status"
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"subscribed\": true,\n  \"subscriptionStatus\": \"premium\",\n  \"activeSubscription\": {\n    \"_id\": \"6800f1b8188a61d3563ce002\",\n    \"user\": \"67ff0ea77185b219a05f4001\",\n    \"platform\": \"google\",\n    \"planType\": \"yearly\",\n    \"productId\": \"com.fitco.subscription.monthly\",\n    \"price\": 0,\n    \"expiryDate\": \"2027-04-15T00:00:00.000Z\",\n    \"status\": \"active\",\n    \"isActive\": true,\n    \"purchaseToken\": \"gp_purchase_token_123456\",\n    \"providerSubscriptionId\": \"GPA.1234-5678-9012-34567\",\n    \"providerPayload\": {\n      \"basePlanId\": \"com-fitco-subscription-yearly\",\n      \"subscriptionState\": \"SUBSCRIPTION_STATE_ACTIVE\",\n      \"autoRenewing\": true,\n      \"latestOrderId\": \"GPA.1234-5678-9012-34567\",\n      \"startDate\": \"2026-04-15T08:00:00.000Z\",\n      \"regionCode\": \"US\"\n    },\n    \"startedAt\": \"2026-04-15T08:02:13.000Z\",\n    \"createdAt\": \"2026-04-15T08:02:13.000Z\",\n    \"updatedAt\": \"2026-04-15T08:02:13.000Z\"\n  }\n}"
+        }
+      ]
     },
     {
       "name": "Apple Webhook",
@@ -185,7 +243,28 @@
           ]
         },
         "description": "Test Apple App Store Server Notifications V2 delivery."
-      }
+      },
+      "response": [
+        {
+          "name": "Sample Response",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/subscription/apple/webhook"
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"notificationType\": \"DID_RENEW\",\n  \"subtype\": \"\",\n  \"received\": true\n}"
+        }
+      ]
     },
     {
       "name": "Google Webhook",
@@ -214,7 +293,28 @@
           ]
         },
         "description": "Test Google Real-time Developer Notifications delivery through Pub/Sub push format."
-      }
+      },
+      "response": [
+        {
+          "name": "Sample Response",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/subscription/google/webhook"
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"notificationType\": 4,\n  \"received\": true\n}"
+        }
+      ]
     }
   ],
   "variable": [
