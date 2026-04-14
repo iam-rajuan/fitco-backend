@@ -7,6 +7,51 @@
   },
   "item": [
     {
+      "name": "Get Subscription Plans",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/subscription/plans",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{apiPrefix}}",
+            "subscription",
+            "plans"
+          ]
+        },
+        "description": "Fetch subscription plans with admin-set price plus Apple and Google store prices."
+      },
+      "response": [
+        {
+          "name": "Sample Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/subscription/plans"
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"plans\": [\n    {\n      \"planType\": \"monthly\",\n      \"interval\": \"month\",\n      \"label\": \"Monthly Plan\",\n      \"prices\": {\n        \"admin\": {\n          \"amount\": 9.99,\n          \"amountCents\": 999,\n          \"currency\": \"usd\"\n        },\n        \"apple\": {\n          \"amount\": null,\n          \"currency\": null\n        },\n        \"google\": {\n          \"amount\": 9.99,\n          \"currency\": \"USD\"\n        }\n      }\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
       "name": "Apple Verify",
       "request": {
         "method": "POST",
@@ -42,7 +87,7 @@
             "verify"
           ]
         },
-        "description": "Verify an Apple App Store subscription transaction and upsert the normalized subscription record for the authenticated user."
+        "description": "Call this after the iOS app completes the App Store purchase and gives you a transaction id."
       }
     },
     {
@@ -81,7 +126,7 @@
             "verify"
           ]
         },
-        "description": "Verify a Google Play subscription purchase token and upsert the normalized subscription record for the authenticated user."
+        "description": "Call this after the Android app completes the Google Play purchase and gives you a purchase token."
       }
     },
     {

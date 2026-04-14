@@ -35,6 +35,8 @@ ADMIN_NAME=Super Admin
 Optional production values:
 
 - `STRIPE_*`
+- `APPLE_*`
+- `GOOGLE_*`
 - `OPENAI_API_KEY`
 - `SMTP_*`
 
@@ -119,3 +121,9 @@ npm run report:food-csv
 - The app seeds the default admin on startup if it does not already exist
 - If SMTP is not configured, password reset OTPs are logged to the console
 - If Stripe or OpenAI keys are missing, related features will be limited
+- Mobile store subscriptions use device-side checkout plus backend verification:
+- `GET /api/v1/subscription/plans` returns pricing plus Apple product ids and Google `google_sku` values
+- `POST /api/v1/subscription/apple/verify` verifies an App Store transaction id after the app completes purchase
+- `POST /api/v1/subscription/google/verify` verifies a Play purchase token after the app completes purchase
+- For Google Play, keep subscription `productId` and `basePlanId` separate. In this backend, `google_sku` should map to the base plan id.
+- If you switch plan display pricing away from DB and toward store-managed catalog data, add the store catalog ids and a target territory/region first.

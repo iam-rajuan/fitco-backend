@@ -8,11 +8,15 @@ import UserModel from '../user/model';
 import * as couponService from '../coupon/service';
 import { PLAN_TYPES, SUBSCRIPTION_STATUS, PlanType, SubscriptionStatus } from '../../utils/constants';
 import {
+  AppleCatalogPrice,
+  getAppleSubscriptionPrice,
   AppleVerifiedSubscription,
   parseAppleWebhookPayload,
   verifyAppleTransaction
 } from './apple.service';
 import {
+  getGoogleBasePlanPrice,
+  GoogleCatalogPrice,
   GoogleVerifiedSubscription,
   parseGoogleWebhookPayload,
   verifyGooglePurchase
@@ -56,9 +60,21 @@ interface PlanPrice {
   planType: PlanType;
   interval: 'month' | 'year';
   label: string;
-  price: number;
-  priceCents: number;
-  currency: string;
+  prices: {
+    admin: {
+      amount: number;
+      amountCents: number;
+      currency: string;
+    };
+    apple: {
+      amount: number | null;
+      currency: string | null;
+    };
+    google: {
+      amount: number | null;
+      currency: string | null;
+    };
+  };
 }
 
 interface QuoteResult {
@@ -90,6 +106,7 @@ interface NormalizedSubscriptionResult {
     userId: string;
     platform: Exclude<SubscriptionPlatform, 'stripe'>;
     productId: string;
+    basePlanId?: string;
     transactionId?: string;
     purchaseToken?: string;
     expiryDate: Date;
@@ -115,16 +132,80 @@ const getPlanPriceCents = (planType: PlanType, pricing: PricingContext): number 
   return pricing.monthlyPriceCents;
 };
 
-const buildPlanPrice = (planType: PlanType, pricing: PricingContext): PlanPrice => {
+const buildPlanPrice = ({
+  planType,
+  pricing,
+  applePrice,
+  googlePrice
+}: {
+  planType: PlanType;
+  pricing: PricingContext;
+  applePrice: AppleCatalogPrice | null;
+  googlePrice: GoogleCatalogPrice | null;
+}): PlanPrice => {
   const priceCents = getPlanPriceCents(planType, pricing);
+
   return {
     planType,
     interval: parsePlanInterval(planType),
     label: planType === PLAN_TYPES.YEARLY ? 'Yearly Plan' : 'Monthly Plan',
-    price: centsToAmount(priceCents),
-    priceCents,
-    currency: pricing.currency
+    prices: {
+      admin: {
+        amount: centsToAmount(priceCents),
+        amountCents: priceCents,
+        currency: pricing.currency
+      },
+      apple: {
+        amount: applePrice?.amount ?? null,
+        currency: applePrice?.currency ?? null
+      },
+      google: {
+        amount: googlePrice?.amount ?? null,
+        currency: googlePrice?.currency ?? null
+      }
+    }
   };
+};
+
+const getApplePriceForPlan = async (planType: PlanType): Promise<AppleCatalogPrice | null> => {
+  const subscriptionIds =
+    planType === PLAN_TYPES.YEARLY ? config.apple.yearlySubscriptionIds : config.apple.monthlySubscriptionIds;
+  const subscriptionId = subscriptionIds[0];
+
+  if (!subscriptionId) {
+    return null;
+  }
+
+  try {
+    return await getAppleSubscriptionPrice({
+      subscriptionId,
+      territory: config.apple.priceTerritory
+    });
+  } catch {
+    return null;
+  }
+};
+
+const getGooglePriceForPlan = async (planType: PlanType): Promise<GoogleCatalogPrice | null> => {
+  const productIds = planType === PLAN_TYPES.YEARLY ? config.google.yearlyProductIds : config.google.monthlyProductIds;
+  const basePlanIds =
+    planType === PLAN_TYPES.YEARLY ? config.google.yearlyBasePlanIds : config.google.monthlyBasePlanIds;
+  const productId = productIds[0];
+  const basePlanId = basePlanIds[0];
+
+  if (!productId || !basePlanId) {
+    return null;
+  }
+
+  try {
+    return await getGoogleBasePlanPrice({
+      productId,
+      basePlanId,
+      region: config.google.priceRegion
+    });
+  } catch {
+    return null;
+  }
 };
 
 const calculateExpiryByPlan = (planType: PlanType): Date => {
@@ -160,6 +241,25 @@ const resolvePlanTypeForProduct = (
   }
 
   throw createHttpError(`Unsupported ${platform} subscription product: ${productId}`, 400);
+};
+
+const resolvePlanTypeForGoogleIdentifiers = ({
+  productId,
+  basePlanId
+}: {
+  productId: string;
+  basePlanId?: string;
+}): PlanType => {
+  if (basePlanId) {
+    if (config.google.monthlyBasePlanIds.includes(basePlanId)) {
+      return PLAN_TYPES.MONTHLY;
+    }
+    if (config.google.yearlyBasePlanIds.includes(basePlanId)) {
+      return PLAN_TYPES.YEARLY;
+    }
+  }
+
+  return resolvePlanTypeForProduct(productId, 'google');
 };
 
 const toExpiryStatus = (expiryDate: Date, revokedAt?: Date | null): SubscriptionStatus => {
@@ -580,7 +680,27 @@ const handleSubscriptionStateChanged = async (subscription: Stripe.Subscription)
 
 export const getPlans = async (): Promise<PlanPrice[]> => {
   const pricing = await getPricingContext();
-  return [buildPlanPrice(PLAN_TYPES.MONTHLY, pricing), buildPlanPrice(PLAN_TYPES.YEARLY, pricing)];
+  const [monthlyApplePrice, yearlyApplePrice, monthlyGooglePrice, yearlyGooglePrice] = await Promise.all([
+    getApplePriceForPlan(PLAN_TYPES.MONTHLY),
+    getApplePriceForPlan(PLAN_TYPES.YEARLY),
+    getGooglePriceForPlan(PLAN_TYPES.MONTHLY),
+    getGooglePriceForPlan(PLAN_TYPES.YEARLY)
+  ]);
+
+  return [
+    buildPlanPrice({
+      planType: PLAN_TYPES.MONTHLY,
+      pricing,
+      applePrice: monthlyApplePrice,
+      googlePrice: monthlyGooglePrice
+    }),
+    buildPlanPrice({
+      planType: PLAN_TYPES.YEARLY,
+      pricing,
+      applePrice: yearlyApplePrice,
+      googlePrice: yearlyGooglePrice
+    })
+  ];
 };
 
 export const getPricingSettings = async (): Promise<PricingSettingsResponse> => {
@@ -741,7 +861,10 @@ const normalizeGoogleSubscription = async (
   userId: string,
   verified: GoogleVerifiedSubscription
 ): Promise<NormalizedSubscriptionResult> => {
-  const planType = resolvePlanTypeForProduct(verified.productId, 'google');
+  const planType = resolvePlanTypeForGoogleIdentifiers({
+    productId: verified.productId,
+    basePlanId: verified.basePlanId
+  });
   const subscription = await upsertExternalSubscription({
     userId,
     platform: 'google',
@@ -751,10 +874,12 @@ const normalizeGoogleSubscription = async (
     purchaseToken: verified.purchaseToken,
     providerSubscriptionId: verified.providerSubscriptionId,
     providerPayload: {
+      basePlanId: verified.basePlanId,
       subscriptionState: verified.subscriptionState,
       autoRenewing: verified.autoRenewing,
       latestOrderId: verified.latestOrderId,
-      startDate: verified.startDate?.toISOString()
+      startDate: verified.startDate?.toISOString(),
+      regionCode: verified.regionCode
     }
   });
 
@@ -766,6 +891,7 @@ const normalizeGoogleSubscription = async (
       userId,
       platform: 'google',
       productId: verified.productId,
+      basePlanId: verified.basePlanId,
       purchaseToken: verified.purchaseToken,
       expiryDate: verified.expiryDate,
       status: subscription.status,

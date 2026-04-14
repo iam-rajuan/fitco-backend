@@ -35,6 +35,9 @@ export interface AppConfig {
     environment: 'sandbox' | 'production';
     monthlyProductIds: string[];
     yearlyProductIds: string[];
+    monthlySubscriptionIds: string[];
+    yearlySubscriptionIds: string[];
+    priceTerritory: string;
   };
   google: {
     packageName: string;
@@ -42,6 +45,9 @@ export interface AppConfig {
     serviceAccountPrivateKey: string;
     monthlyProductIds: string[];
     yearlyProductIds: string[];
+    monthlyBasePlanIds: string[];
+    yearlyBasePlanIds: string[];
+    priceRegion: string;
   };
 }
 
@@ -81,7 +87,16 @@ const config: AppConfig = {
     yearlyProductIds: (process.env.APPLE_YEARLY_PRODUCT_IDS || '')
       .split(',')
       .map(value => value.trim())
-      .filter(Boolean)
+      .filter(Boolean),
+    monthlySubscriptionIds: (process.env.APPLE_MONTHLY_SUBSCRIPTION_IDS || '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean),
+    yearlySubscriptionIds: (process.env.APPLE_YEARLY_SUBSCRIPTION_IDS || '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean),
+    priceTerritory: process.env.APPLE_PRICE_TERRITORY || 'USA'
   },
   google: {
     packageName: process.env.GOOGLE_PACKAGE_NAME || '',
@@ -94,7 +109,16 @@ const config: AppConfig = {
     yearlyProductIds: (process.env.GOOGLE_YEARLY_PRODUCT_IDS || '')
       .split(',')
       .map(value => value.trim())
-      .filter(Boolean)
+      .filter(Boolean),
+    monthlyBasePlanIds: (process.env.GOOGLE_MONTHLY_BASE_PLAN_IDS || process.env.GOOGLE_MONTHLY_PRODUCT_IDS || '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean),
+    yearlyBasePlanIds: (process.env.GOOGLE_YEARLY_BASE_PLAN_IDS || process.env.GOOGLE_YEARLY_PRODUCT_IDS || '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean),
+    priceRegion: process.env.GOOGLE_PRICE_REGION || 'US'
   }
 };
 

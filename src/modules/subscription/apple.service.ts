@@ -11,6 +11,12 @@ export interface AppleVerifiedSubscription {
   environment?: string;
 }
 
+export interface AppleCatalogPrice {
+  amount: number;
+  currency: string;
+  territory: string;
+}
+
 interface AppleTransactionPayload {
   productId?: string;
   transactionId?: string;
@@ -68,7 +74,33 @@ const decodeJwsPayload = <T>(token: string): T => {
   return JSON.parse(fromBase64Url(parts[1] as string).toString('utf8')) as T;
 };
 
-const createAppStoreToken = (): string => {
+const createAppStoreConnectToken = (): string => {
+  const header = {
+    alg: 'ES256',
+    kid: config.apple.keyId,
+    typ: 'JWT'
+  };
+  const issuedAt = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: config.apple.issuerId,
+    iat: issuedAt,
+    exp: issuedAt + 300,
+    aud: APPLE_API_AUDIENCE,
+    bid: config.apple.bundleId
+  };
+
+  const encodedHeader = toBase64Url(JSON.stringify(header));
+  const encodedPayload = toBase64Url(JSON.stringify(payload));
+  const unsignedToken = `${encodedHeader}.${encodedPayload}`;
+  const signature = crypto.sign('sha256', Buffer.from(unsignedToken), {
+    key: config.apple.privateKey,
+    dsaEncoding: 'ieee-p1363'
+  });
+
+  return `${unsignedToken}.${toBase64Url(signature)}`;
+};
+
+const createStoreKitToken = (): string => {
   const header = {
     alg: 'ES256',
     kid: config.apple.keyId,
@@ -106,7 +138,7 @@ const fetchFromApple = async <T>(path: string): Promise<T> => {
   const response = await fetch(`${getAppleBaseUrl()}${path}`, {
     method: 'GET',
     headers: {
-      Authorization: `Bearer ${createAppStoreToken()}`
+      Authorization: `Bearer ${createStoreKitToken()}`
     }
   });
 
@@ -116,6 +148,79 @@ const fetchFromApple = async <T>(path: string): Promise<T> => {
   }
 
   return (await response.json()) as T;
+};
+
+const fetchFromAppStoreConnect = async <T>(path: string): Promise<T> => {
+  ensureAppleConfigured();
+
+  const response = await fetch(`https://api.appstoreconnect.apple.com${path}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${createAppStoreConnectToken()}`
+    }
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw createHttpError(`Apple catalog request failed: ${body || response.statusText}`, response.status);
+  }
+
+  return (await response.json()) as T;
+};
+
+interface AppleSubscriptionPricesResponse {
+  data?: Array<{
+    relationships?: {
+      territory?: {
+        data?: {
+          id?: string;
+        };
+      };
+      subscriptionPricePoint?: {
+        data?: {
+          id?: string;
+        };
+      };
+    };
+  }>;
+  included?: Array<{
+    type?: string;
+    id?: string;
+    attributes?: {
+      customerPrice?: string;
+      currency?: string;
+    };
+  }>;
+}
+
+export const getAppleSubscriptionPrice = async ({
+  subscriptionId,
+  territory
+}: {
+  subscriptionId: string;
+  territory: string;
+}): Promise<AppleCatalogPrice | null> => {
+  const response = await fetchFromAppStoreConnect<AppleSubscriptionPricesResponse>(
+    `/v1/subscriptions/${encodeURIComponent(
+      subscriptionId
+    )}/prices?filter[territory]=${encodeURIComponent(territory)}&include=subscriptionPricePoint,territory&limit=1`
+  );
+
+  const pricePointId = response.data?.[0]?.relationships?.subscriptionPricePoint?.data?.id;
+  const pricePoint = response.included?.find(item => item.type === 'subscriptionPricePoints' && item.id === pricePointId);
+  const territoryInfo = response.included?.find(item => item.type === 'territories' && item.id === territory);
+  const customerPrice = pricePoint?.attributes?.customerPrice;
+  const currency = territoryInfo?.attributes?.currency || 'USD';
+
+  if (!customerPrice) {
+    return null;
+  }
+
+  return {
+    amount: Number(customerPrice),
+    currency,
+    territory
+  };
 };
 
 const mapTransactionPayload = (payload: AppleTransactionPayload): AppleVerifiedSubscription => {

@@ -4,12 +4,20 @@ import config from '../../config';
 export interface GoogleVerifiedSubscription {
   productId: string;
   purchaseToken: string;
+  basePlanId?: string;
   providerSubscriptionId?: string;
   expiryDate: Date;
   startDate?: Date;
   autoRenewing: boolean;
   subscriptionState: string;
   latestOrderId?: string;
+  regionCode?: string;
+}
+
+export interface GoogleCatalogPrice {
+  amount: number;
+  currency: string;
+  region: string;
 }
 
 interface GoogleLineItem {
@@ -17,12 +25,16 @@ interface GoogleLineItem {
   expiryTime?: string;
   latestSuccessfulOrderId?: string;
   autoRenewingPlan?: Record<string, unknown>;
+  offerDetails?: {
+    basePlanId?: string;
+  };
 }
 
 interface GoogleSubscriptionResponse {
   subscriptionState?: string;
   startTime?: string;
   latestOrderId?: string;
+  regionCode?: string;
   lineItems?: GoogleLineItem[];
 }
 
@@ -125,12 +137,14 @@ const mapGoogleSubscription = (
   return {
     productId: lineItem.productId,
     purchaseToken,
+    basePlanId: lineItem.offerDetails?.basePlanId,
     providerSubscriptionId: payload.latestOrderId || lineItem.latestSuccessfulOrderId,
     expiryDate: new Date(lineItem.expiryTime),
     startDate: payload.startTime ? new Date(payload.startTime) : undefined,
     autoRenewing: Boolean(lineItem.autoRenewingPlan),
     subscriptionState: payload.subscriptionState || 'SUBSCRIPTION_STATE_UNSPECIFIED',
-    latestOrderId: payload.latestOrderId || lineItem.latestSuccessfulOrderId
+    latestOrderId: payload.latestOrderId || lineItem.latestSuccessfulOrderId,
+    regionCode: payload.regionCode
   };
 };
 
@@ -154,6 +168,80 @@ export const verifyGooglePurchase = async (purchaseToken: string): Promise<Googl
   }
 
   return mapGoogleSubscription(purchaseToken, (await response.json()) as GoogleSubscriptionResponse);
+};
+
+interface GoogleMonetizationMoney {
+  currencyCode?: string;
+  units?: string;
+  nanos?: number;
+}
+
+interface GoogleRegionalBasePlanConfig {
+  regionCode?: string;
+  price?: GoogleMonetizationMoney;
+}
+
+interface GoogleBasePlanCatalog {
+  basePlanId?: string;
+  regionalConfigs?: GoogleRegionalBasePlanConfig[];
+}
+
+interface GoogleSubscriptionCatalogResponse {
+  basePlans?: GoogleBasePlanCatalog[];
+}
+
+const moneyToAmount = (money?: GoogleMonetizationMoney): number | null => {
+  if (!money?.currencyCode) {
+    return null;
+  }
+
+  const units = Number(money.units || 0);
+  const nanos = Number(money.nanos || 0) / 1_000_000_000;
+  return Number((units + nanos).toFixed(2));
+};
+
+export const getGoogleBasePlanPrice = async ({
+  productId,
+  basePlanId,
+  region
+}: {
+  productId: string;
+  basePlanId: string;
+  region: string;
+}): Promise<GoogleCatalogPrice | null> => {
+  const accessToken = await createGoogleAccessToken();
+  const response = await fetch(
+    `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(
+      config.google.packageName
+    )}/subscriptions/${encodeURIComponent(productId)}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    }
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw createHttpError(`Google catalog request failed: ${body || response.statusText}`, response.status);
+  }
+
+  const payload = (await response.json()) as GoogleSubscriptionCatalogResponse;
+  const basePlan = payload.basePlans?.find(item => item.basePlanId === basePlanId);
+  const regionalConfig = basePlan?.regionalConfigs?.find(item => item.regionCode === region);
+  const amount = moneyToAmount(regionalConfig?.price);
+  const currency = regionalConfig?.price?.currencyCode;
+
+  if (amount === null || !currency) {
+    return null;
+  }
+
+  return {
+    amount,
+    currency,
+    region
+  };
 };
 
 export const parseGoogleWebhookPayload = (
