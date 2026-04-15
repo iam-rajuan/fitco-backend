@@ -44,8 +44,24 @@ const SubscriptionSchema = new Schema<SubscriptionDocument>(
   { timestamps: true }
 );
 
-SubscriptionSchema.index({ platform: 1, transactionId: 1 }, { unique: true, sparse: true });
-SubscriptionSchema.index({ platform: 1, purchaseToken: 1 }, { unique: true, sparse: true });
+SubscriptionSchema.index(
+  { platform: 1, transactionId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      transactionId: { $exists: true, $type: 'string' }
+    }
+  }
+);
+SubscriptionSchema.index(
+  { platform: 1, purchaseToken: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      purchaseToken: { $exists: true, $type: 'string' }
+    }
+  }
+);
 
 const SubscriptionModel = mongoose.model<SubscriptionDocument>('Subscription', SubscriptionSchema);
 
