@@ -15,6 +15,7 @@ import {
   verifyAppleTransaction
 } from './apple.service';
 import {
+  acknowledgeGoogleSubscription,
   getGoogleBasePlanPrice,
   GoogleCatalogPrice,
   GoogleVerifiedSubscription,
@@ -122,6 +123,9 @@ const createHttpError = (message: string, statusCode: number): Error & { statusC
 };
 
 const centsToAmount = (value: number): number => Number((value / 100).toFixed(2));
+
+const stripNilValues = <T extends Record<string, unknown>>(value: T): Partial<T> =>
+  Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== null)) as Partial<T>;
 
 const parsePlanInterval = (planType: PlanType): 'month' | 'year' => (planType === PLAN_TYPES.YEARLY ? 'year' : 'month');
 
@@ -472,7 +476,11 @@ const upsertExternalSubscription = async (params: {
     throw createHttpError(`Missing ${params.platform} subscription identifier`, 400);
   }
 
-  const payload = {
+  if (params.platform === 'google') {
+    await SubscriptionModel.updateMany({ platform: 'google', transactionId: null }, { $unset: { transactionId: 1 } });
+  }
+
+  const payload = stripNilValues({
     user: params.userId,
     platform: params.platform,
     productId: params.productId,
@@ -485,7 +493,7 @@ const upsertExternalSubscription = async (params: {
     purchaseToken: params.purchaseToken,
     providerSubscriptionId: params.providerSubscriptionId,
     providerPayload: params.providerPayload
-  };
+  });
 
   const existing = await SubscriptionModel.findOne({
     platform: params.platform,
@@ -861,6 +869,16 @@ const normalizeGoogleSubscription = async (
   userId: string,
   verified: GoogleVerifiedSubscription
 ): Promise<NormalizedSubscriptionResult> => {
+  try {
+    await acknowledgeGoogleSubscription({
+      productId: verified.productId,
+      purchaseToken: verified.purchaseToken
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Google purchase acknowledgement failed';
+    throw createHttpError(message, 400);
+  }
+
   const planType = resolvePlanTypeForGoogleIdentifiers({
     productId: verified.productId,
     basePlanId: verified.basePlanId

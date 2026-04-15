@@ -170,6 +170,34 @@ export const verifyGooglePurchase = async (purchaseToken: string): Promise<Googl
   return mapGoogleSubscription(purchaseToken, (await response.json()) as GoogleSubscriptionResponse);
 };
 
+export const acknowledgeGoogleSubscription = async ({
+  productId,
+  purchaseToken
+}: {
+  productId: string;
+  purchaseToken: string;
+}): Promise<void> => {
+  const accessToken = await createGoogleAccessToken();
+  const response = await fetch(
+    `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(
+      config.google.packageName
+    )}/purchases/subscriptions/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}:acknowledge`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
+    }
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw createHttpError(`Google acknowledge failed: ${body || response.statusText}`, response.status);
+  }
+};
+
 interface GoogleMonetizationMoney {
   currencyCode?: string;
   units?: string;
