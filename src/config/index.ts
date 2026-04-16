@@ -58,11 +58,11 @@ const config: AppConfig = {
   jwt: {
     accessSecret: process.env.JWT_SECRET || 'changemeaccess',
     refreshSecret: process.env.JWT_REFRESH_SECRET || 'changemerefresh',
-    accessExpiresIn: '8h',
-    refreshExpiresIn: '7d'
+    accessExpiresIn: '30d',
+    refreshExpiresIn: '30d'
   },
   chat: {
-    freeLimit: 2,
+    freeLimit: Number(process.env.FREE_CHAT_DAILY_LIMIT || 2),
     paidMonthlyLimit: Number(process.env.PAID_CHAT_MONTHLY_LIMIT || 1000)
   },
   stripe: {

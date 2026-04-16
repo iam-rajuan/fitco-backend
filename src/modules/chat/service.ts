@@ -45,6 +45,7 @@ export interface ChatLimitStatus {
   isUnlimited: boolean;
   dailyFreeLimit: number;
   paidMonthlyLimit: number;
+  premiumMonthlyLimit: number;
   messagesUsedToday: number;
   messagesLeftToday: number | null;
   messagesUsedThisMonth: number;
@@ -289,6 +290,7 @@ export const getChatLimitStatus = async (userId: string): Promise<ChatLimitStatu
     isUnlimited: false,
     dailyFreeLimit: config.chat.freeLimit,
     paidMonthlyLimit: config.chat.paidMonthlyLimit,
+    premiumMonthlyLimit: config.chat.paidMonthlyLimit,
     messagesUsedToday,
     messagesLeftToday,
     messagesUsedThisMonth,
@@ -320,7 +322,9 @@ export const sendMessage = async (userId: string, prompt: string): Promise<ChatR
     const { start: startOfDay } = getDayWindowUTC(now);
     const messagesToday = await ChatModel.countDocuments({ user: userId, createdAt: { $gte: startOfDay } });
     if (messagesToday >= config.chat.freeLimit) {
-      const error = new Error('Daily chat limit reached. Upgrade to premium for unlimited access.');
+      const error = new Error(
+        `Daily chat limit reached. Free users can send ${config.chat.freeLimit} messages per day. Upgrade to premium for ${config.chat.paidMonthlyLimit} messages per month.`
+      );
       (error as any).statusCode = 403;
       throw error;
     }
@@ -328,7 +332,7 @@ export const sendMessage = async (userId: string, prompt: string): Promise<ChatR
     const { start: startOfMonth } = getMonthWindowUTC(now);
     const messagesThisMonth = await ChatModel.countDocuments({ user: userId, createdAt: { $gte: startOfMonth } });
     if (messagesThisMonth >= config.chat.paidMonthlyLimit) {
-      const error = new Error('Monthly limit reached.');
+      const error = new Error(`Monthly premium chat limit reached (${config.chat.paidMonthlyLimit} messages).`);
       (error as any).statusCode = 403;
       throw error;
     }
